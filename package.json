@@ -1,0 +1,20 @@
+{
+  "name": "readmeify",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.20.7",
+    "@google/generative-ai": "^0.24.1",
+    "@octokit/rest": "^20.1.1",
+    "groq-sdk": "^0.37.0",
+    "next": "^14.2.35",
+    "next-auth": "^4.24.7",
+    "react": "^18",
+    "react-dom": "^18"
+  }
+}

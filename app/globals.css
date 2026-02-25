@@ -1,0 +1,36 @@
+@import url('https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,500;0,600;1,400&family=JetBrains+Mono:wght@400;500&family=Sora:wght@300;400;500;600&display=swap');
+
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+:root {
+  --bg:       #0c0c0e;
+  --surface:  #131316;
+  --surface2: #1b1b20;
+  --border:   #26262e;
+  --border2:  #34343f;
+  --text:     #e2e2ec;
+  --muted:    #64647a;
+  --subtle:   #3a3a4a;
+  --accent:   #5b8dee;
+  --accent2:  #89b4fa;
+  --green:    #52d08a;
+  --red:      #f07070;
+  --yellow:   #e8c56d;
+}
+
+html, body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Sora', sans-serif;
+  min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* scrollbar */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 3px; }
