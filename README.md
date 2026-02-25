@@ -1,43 +1,82 @@
-# Readmeify
-Readmeify is a web application that leverages AI capabilities to generate content. It utilizes Next.js as its core framework and integrates with GitHub repositories.
+# readmeify
 
-### Tech Stack
-[![Next.js](https://img.shields.io/badge/Next.js-14.2.35-000000?style=flat&logo=nextdotjs)](https://nextjs.org/)
-[![React](https://img.shields.io/badge/React-18-61DAFB?style=flat&logo=react)](https://react.dev/)
-[![JavaScript](https://img.shields.io/badge/JavaScript-ES6+-F7DF1E?style=flat&logo=javascript)](https://www.ecma-international.org/publications-and-standards/standards/ecma-262/)
+I built this because I'm lazy and hate writing READMEs. It connects to your GitHub, reads your actual repo structure and dependencies, and generates a proper README. It then lets you commit it directly to your repo without leaving the page.
 
-## Features
-- Authentication and authorization using NextAuth
-- Integration with GitHub repositories for data retrieval and manipulation
-- AI-powered content generation using Anthropic AI and Google Generative AI SDKs
-- API routes for commits, repositories, and generated content
-- Customizable UI components and theming
+**Live:** https://readmeify-five.vercel.app
 
-## Installation
-To get started, clone this repository and install the required dependencies:
-```bash
-git clone https://github.com/your-username/Readmeify.git
-cd Readmeify
-npm install
-```
-Create a `.env.local` file based on the provided example and configure your environment variables.
+---
 
 ## Usage
-Start the development server with:
+
+Visit the live site at https://readmeify-five.vercel.app
+
+### Generate a README
+
+1. Sign in with GitHub
+2. Pick a repo from the sidebar
+3. Click **Generate README**
+4. Review the output in the preview or raw markdown tab
+5. Hit **Commit to GitHub** to push it directly to your repo
+
+---
+
+## What it reads from your repo
+
+| File | Why |
+|------|-----|
+| File tree | Understands your project structure |
+| `package.json` | Detects stack, scripts, dependencies |
+| `requirements.txt` / `Cargo.toml` / `go.mod` | Same for other languages |
+| Existing `README.md` | Uses it as context if one exists |
+
+---
+
+## Project structure
+
+```
+readmeify/
+├── app/
+│   ├── api/
+│   │   ├── auth/[...nextauth]/route.js   ← GitHub OAuth
+│   │   ├── generate/route.js             ← AI generation
+│   │   ├── commit/route.js               ← commits to GitHub
+│   │   └── repos/route.js                ← fetches your repos
+│   ├── lib/
+│   │   └── github.js                     ← GitHub API helpers
+│   ├── components/
+│   │   └── Providers.js
+│   ├── page.js                           ← main UI
+│   ├── layout.js
+│   └── globals.css
+├── .env.local.example
+└── package.json
+```
+
+---
+
+## Self-hosting
+
+```bash
+git clone https://github.com/Chenry513/readmeify
+cd readmeify
+npm install
+cp .env.local.example .env.local
+```
+
+Fill in `.env.local` with your keys — see the example file for where to get each one. Then:
+
 ```bash
 npm run dev
 ```
-Build the application for production:
-```bash
-npm run build
-```
-Run the production server:
-```bash
-npm run start
-```
 
-## Contributing
-If you'd like to contribute to Readmeify, please fork this repository and submit a pull request. Ensure your changes are well-documented and follow standard professional guidelines.
+---
+
+## Stack
+
+Next.js · NextAuth · Groq API · GitHub API · Vercel
+
+---
 
 ## License
-This project is licensed under the MIT License. See [LICENSE](LICENSE) for details.
+
+MIT
