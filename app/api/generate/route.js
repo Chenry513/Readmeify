@@ -23,56 +23,39 @@ export async function POST(req) {
     : "You are generating a README for the entire repository.";
 
   const hasInstructions = instructions?.trim().length > 0;
+  const hasNotebooks = context.notebookContent?.length > 0;
 
-  // If the user provided detailed instructions, treat them as the primary source.
-  // Use the repo file tree only as supplementary context.
-  const prompt = hasInstructions
-    ? `You are an expert technical writer. Generate a professional, well-structured README.md.
+  const repoContext = [
+    context.configFiles ? `FILE CONTENTS (config/dependencies):\n${context.configFiles}` : "",
+    hasNotebooks ? `NOTEBOOK CONTENTS (extracted from .ipynb files — use this as the primary source for methods, results, and findings):\n${context.notebookContent}` : "",
+  ].filter(Boolean).join("\n\n");
 
-${scopeNote}
+  // Instructions are GUIDANCE, not content to reproduce
+  const instructionsSection = hasInstructions
+    ? `\nUSER GUIDANCE (use this to understand intent and structure only — do NOT copy it verbatim):\n${instructions.trim()}\n`
+    : "";
 
-Repository name: ${subdir ? `${repo}/${subdir}` : repo}
-Primary language: ${context.language}
-
-FILE STRUCTURE (for reference only):
-${context.fileTree}
-
-USER-PROVIDED CONTENT (treat this as the primary source of truth — use it directly to write the README, do not ignore or override it):
-${instructions.trim()}
-
-Instructions:
-- Use the user-provided content above as your main source. Extract the project name, description, methods, results, and any other details directly from it.
-- Do NOT fall back to generic README templates or invent details not present in the user content.
-- Use the file structure only to fill gaps (e.g. installation steps, tech stack) not covered by the user content.
-- Include relevant tech stack badges based on what is mentioned in the user content or visible in the file structure.
-- Use clean markdown formatting with proper headers, code blocks, and tables where appropriate.
-- Do not include any preamble or explanation — output only the raw markdown content of the README.`
-
-    : `You are an expert technical writer. Generate a professional, well-structured README.md for the following GitHub repository.
+  const prompt = `You are an expert technical writer generating a README.md from scratch.
 
 ${scopeNote}
 
-Repository name: ${subdir ? `${repo}/${subdir}` : repo}
-Description: ${context.description || "not provided"}
-Primary language: ${context.language}
-Topics/tags: ${context.topics.join(", ") || "none"}
+Repository: ${subdir ? `${repo}/${subdir}` : repo}
+Language: ${context.language}
 
-File structure:
+FILE STRUCTURE:
 ${context.fileTree}
 
-${context.configFiles ? `Configuration files:\n${context.configFiles}` : ""}
-
-Write a README.md that:
-- Opens with a concise 1-2 sentence description of what the project does
-- Includes relevant tech stack badges (use shields.io style markdown)
-- Has a Features section with the most important capabilities inferred from the code structure
-- Has clear Installation and Usage sections based on the detected tech stack
-- Includes a Contributing section
-- Ends with a License section (assume MIT)
-- Uses clean markdown formatting with proper headers, code blocks, and tables where appropriate
-- Feels like it was written by a senior developer, not a template generator
-
-Do not include any preamble or explanation — output only the raw markdown content of the README.`;
+${repoContext}
+${instructionsSection}
+Your task:
+- Write a clean, professional README.md based on the actual repo content above
+- If notebook content is present, use it as the primary source for methods, results, and findings
+- If user guidance references an example README, use it only to understand desired structure — do NOT reproduce its text
+- Fix any obvious errors you find (wrong project name, wrong objective, etc.)
+- Include tech stack badges (shields.io format)
+- Include sections: Overview, Dataset, Methods, Results, Setup, Contributors (where relevant)
+- Rewrite everything in clean technical prose — do not copy-paste from any provided content
+- Output only raw markdown, no preamble or explanation`;
 
   const stream = await groq.chat.completions.create({
     model: "llama-3.3-70b-versatile",

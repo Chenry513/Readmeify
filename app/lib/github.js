@@ -15,10 +15,39 @@ const CONTEXT_FILES = [
   "pyproject.toml",
 ];
 
+// Pull markdown cells + meaningful code cells from a .ipynb file
+function extractNotebookText(raw) {
+  try {
+    const nb = JSON.parse(raw);
+    const cells = nb.cells || nb.worksheets?.[0]?.cells || [];
+    const lines = [];
+    for (const cell of cells) {
+      const src = Array.isArray(cell.source)
+        ? cell.source.join("")
+        : cell.source || "";
+      if (!src.trim()) continue;
+      if (cell.cell_type === "markdown") {
+        lines.push(src.trim());
+      } else if (cell.cell_type === "code") {
+        const meaningful = src
+          .split("\n")
+          .filter((l) => l.trim() && !l.trim().startsWith("#"))
+          .join("\n");
+        if (meaningful.length > 30) {
+          lines.push("```python\n" + src.trim() + "\n```");
+        }
+      }
+      if (lines.join("\n").length > 4000) break;
+    }
+    return lines.join("\n\n");
+  } catch {
+    return null;
+  }
+}
+
 export async function getRepoContext(accessToken, owner, repo, subdir = null) {
   const octokit = new Octokit({ auth: accessToken });
 
-  // Get the full file tree, scoped to subdir if provided
   const { data: treeData } = await octokit.git.getTree({
     owner,
     repo,
@@ -26,7 +55,6 @@ export async function getRepoContext(accessToken, owner, repo, subdir = null) {
     recursive: "1",
   });
 
-  // Filter to subdir if specified
   const allFiles = treeData.tree.filter((f) => f.type === "blob");
   const scopedFiles = subdir
     ? allFiles.filter((f) => f.path.startsWith(subdir + "/"))
@@ -37,7 +65,7 @@ export async function getRepoContext(accessToken, owner, repo, subdir = null) {
     .map((f) => (subdir ? f.path.replace(subdir + "/", "") : f.path))
     .join("\n");
 
-  // Look for config files — check subdir first, then root
+  // Config files
   const contextSnippets = [];
   const searchPaths = subdir
     ? CONTEXT_FILES.map((f) => `${subdir}/${f}`).concat(CONTEXT_FILES)
@@ -50,10 +78,28 @@ export async function getRepoContext(accessToken, owner, repo, subdir = null) {
         const content = decode(data.content).slice(0, 1500);
         contextSnippets.push(`=== ${filepath} ===\n${content}`);
       }
-    } catch {
-      // doesn't exist, skip
-    }
+    } catch {}
     if (contextSnippets.length >= 2) break;
+  }
+
+  // Jupyter notebooks — read up to 3, extract markdown + code cells
+  const notebookSnippets = [];
+  const notebookFiles = scopedFiles
+    .filter((f) => f.path.endsWith(".ipynb"))
+    .slice(0, 3);
+
+  for (const nb of notebookFiles) {
+    try {
+      const { data } = await octokit.repos.getContent({ owner, repo, path: nb.path });
+      if (data.content) {
+        const raw = decode(data.content);
+        const extracted = extractNotebookText(raw);
+        if (extracted) {
+          const displayPath = subdir ? nb.path.replace(subdir + "/", "") : nb.path;
+          notebookSnippets.push(`=== ${displayPath} (notebook) ===\n${extracted}`);
+        }
+      }
+    } catch {}
   }
 
   const { data: repoMeta } = await octokit.repos.get({ owner, repo });
@@ -66,6 +112,7 @@ export async function getRepoContext(accessToken, owner, repo, subdir = null) {
     topics: repoMeta.topics || [],
     fileTree: tree,
     configFiles: contextSnippets.join("\n\n"),
+    notebookContent: notebookSnippets.join("\n\n"),
   };
 }
 
@@ -96,9 +143,8 @@ export async function getRepoTree(accessToken, owner, repo) {
     tree_sha: "HEAD",
     recursive: "1",
   });
-  // Return dirs and files, max 200 entries
   return treeData.tree
-    .filter((f) => f.path.split("/").length <= 4) // max 4 levels deep
+    .filter((f) => f.path.split("/").length <= 4)
     .slice(0, 200)
     .map((f) => ({ path: f.path, type: f.type }));
 }
@@ -111,9 +157,7 @@ export async function commitReadme(accessToken, owner, repo, content, subdir = n
   try {
     const { data } = await octokit.repos.getContent({ owner, repo, path: filePath });
     sha = data.sha;
-  } catch {
-    // file doesn't exist yet
-  }
+  } catch {}
 
   const encoded = Buffer.from(content).toString("base64");
 
