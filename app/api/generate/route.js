@@ -18,60 +18,70 @@ export async function POST(req) {
 
   const context = await getRepoContext(session.accessToken, owner, repo, subdir || null);
 
+  // Log what we actually read so we can debug
+  console.log("[generate] repo:", repo, "subdir:", subdir);
+  console.log("[generate] configFiles length:", context.configFiles?.length || 0);
+  console.log("[generate] sourceFiles length:", context.sourceFiles?.length || 0);
+  console.log("[generate] notebookContent length:", context.notebookContent?.length || 0);
+  console.log("[generate] instructions length:", instructions?.length || 0);
+
   const scopeNote = subdir
-    ? `You are generating a README specifically for the \`${subdir}/\` subdirectory, not the entire repo.`
+    ? `You are generating a README for the \`${subdir}/\` subdirectory only.`
     : "You are generating a README for the entire repository.";
 
-  const hasNotebooks = context.notebookContent?.length > 0;
-  const hasSource = context.sourceFiles?.length > 0;
-  const hasInstructions = instructions?.trim().length > 0;
+  // Build the context — put actual file content front and center
+  const contextParts = [];
 
-  // Build context block — notebooks are highest priority for results/methods,
-  // source files for understanding what the project actually does
-  const repoContext = [
-    context.configFiles
-      ? `CONFIG FILES (dependencies, scripts):\n${context.configFiles}`
-      : "",
-    hasSource
-      ? `SOURCE FILES (read these to understand what the project does):\n${context.sourceFiles}`
-      : "",
-    hasNotebooks
-      ? `NOTEBOOK CONTENTS (cells + outputs — PRIMARY source for methods and results):\n${context.notebookContent}`
-      : "",
-  ].filter(Boolean).join("\n\n");
+  if (context.configFiles?.length) {
+    contextParts.push(`=== CONFIG / DEPENDENCY FILES ===\n${context.configFiles}`);
+  }
+  if (context.sourceFiles?.length) {
+    contextParts.push(`=== SOURCE CODE (read carefully — this is what the project actually does) ===\n${context.sourceFiles}`);
+  }
+  if (context.notebookContent?.length) {
+    contextParts.push(`=== NOTEBOOK CELLS + OUTPUTS (use exact results, metrics, numbers from here) ===\n${context.notebookContent}`);
+  }
 
-  const instructionsSection = hasInstructions
-    ? `\nUSER GUIDANCE (use to understand intent, tone, and structure — do NOT copy verbatim, do NOT reproduce example READMEs word for word):\n${instructions.trim()}\n`
+  const contextBlock = contextParts.length
+    ? contextParts.join("\n\n")
+    : "(no file content could be read — infer from file names only)";
+
+  // Instructions get their own clearly labelled block at the top
+  const instructionsBlock = instructions?.trim()
+    ? `=== USER INSTRUCTIONS (follow these exactly — they override defaults) ===
+${instructions.trim()}
+=== END USER INSTRUCTIONS ===`
     : "";
 
-  const prompt = `You are an expert technical writer generating a README.md from scratch.
+  const prompt = `You are a technical writer generating a README.md. You have been given the actual contents of files in the repository. Use them.
 
 ${scopeNote}
-
-Repository: ${subdir ? `${repo}/${subdir}` : repo}
+Repo: ${subdir ? `${repo}/${subdir}` : repo}
 Language: ${context.language}
-Topics: ${context.topics.join(", ") || "none"}
 
-FILE STRUCTURE:
+${instructionsBlock}
+
+FILE TREE:
 ${context.fileTree}
 
-${repoContext}
-${instructionsSection}
-Write a README.md that:
-- Opens with 1-2 sentences describing what the project actually does (inferred from the source/notebook content, not just the name)
-- Uses source files and notebooks as the ground truth for all technical details
-- If notebooks are present, uses their outputs for real results, metrics, and findings — not guesses
-- Matches the section structure and depth from any example in the user guidance (if provided)
-- Includes tech stack badges (shields.io format)
-- Has clear Setup/Installation and Usage sections
-- Rewrites everything in clean technical prose — never copies text verbatim from any provided content
-- Outputs only raw markdown, no preamble or explanation`;
+${contextBlock}
+
+RULES — follow all of these:
+1. If the user gave instructions above, follow them exactly. They override everything else.
+2. Write in first person ("I built this because...", "I use X to do Y") unless instructions say otherwise.
+3. Every technical claim must come from the actual file contents above — do NOT invent features, do NOT use generic descriptions.
+4. If notebooks are present, use the exact numbers from their outputs (accuracy, F1, etc.) — not approximations.
+5. Be specific and detailed. A bad README says "supports multiple languages." A good one says "reads .py, .js, .ts, .ipynb, .r, .sql files and extracts source code and cell outputs."
+6. Do not write a generic README. If you cannot find specific details in the files above, say so honestly.
+7. Output only raw markdown. No preamble, no explanation, no "Here is your README:".`;
+
+  console.log("[generate] prompt length:", prompt.length);
 
   const stream = await groq.chat.completions.create({
     model: "llama-3.3-70b-versatile",
     messages: [{ role: "user", content: prompt }],
     stream: true,
-    max_tokens: 2000,
+    max_tokens: 2500,
   });
 
   const encoder = new TextEncoder();
