@@ -119,6 +119,7 @@ export default function Home() {
   // instructions
   const [instructions, setInstructions] = useState("");
   const [instHeight, setInstHeight] = useState(120);
+  const [sidebarWidth, setSidebarWidth] = useState(260);
   const dragRef = useRef(null);
 
   const startDrag = (e) => {
@@ -126,8 +127,24 @@ export default function Home() {
     const startY = e.clientY;
     const startH = instHeight;
     const onMove = (ev) => {
-      const delta = startY - ev.clientY; // drag up = taller
+      const delta = startY - ev.clientY;
       setInstHeight(Math.min(400, Math.max(60, startH + delta)));
+    };
+    const onUp = () => {
+      window.removeEventListener("mousemove", onMove);
+      window.removeEventListener("mouseup", onUp);
+    };
+    window.addEventListener("mousemove", onMove);
+    window.addEventListener("mouseup", onUp);
+  };
+
+  const startSidebarDrag = (e) => {
+    e.preventDefault();
+    const startX = e.clientX;
+    const startW = sidebarWidth;
+    const onMove = (ev) => {
+      const delta = ev.clientX - startX;
+      setSidebarWidth(Math.min(480, Math.max(180, startW + delta)));
     };
     const onUp = () => {
       window.removeEventListener("mousemove", onMove);
@@ -241,19 +258,19 @@ export default function Home() {
     return (
       <div style={{minHeight:"100vh",display:"flex",flexDirection:"column"}}>
         <nav style={{height:56,display:"flex",alignItems:"center",padding:"0 2rem",borderBottom:"1px solid var(--border)"}}>
-          <span style={{fontFamily:"Lora,serif",fontSize:"1.15rem",fontWeight:500,color:"var(--text)",letterSpacing:"-.01em"}}>readmeify</span>
+          <span style={{fontFamily:"inherit",fontSize:"1.15rem",fontWeight:500,color:"var(--text)",letterSpacing:"-.01em"}}>readmeify</span>
         </nav>
         <div style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",padding:"4rem 2rem",textAlign:"center"}}>
           <div style={{display:"inline-block",padding:"5px 12px",borderRadius:20,border:"1px solid var(--border2)",color:"var(--muted)",fontSize:".75rem",marginBottom:"1.8rem",fontFamily:"JetBrains Mono,monospace",letterSpacing:".04em"}}>
             README generator
           </div>
-          <h1 style={{fontFamily:"Lora,serif",fontSize:"clamp(2.4rem,5vw,4rem)",fontWeight:600,lineHeight:1.15,marginBottom:"1.1rem",color:"var(--text)",maxWidth:640}}>
-            Your repo deserves a<br/><span style={{fontStyle:"italic",color:"var(--accent2)"}}>better README</span>
+          <h1 style={{fontFamily:"inherit",fontSize:"clamp(2.4rem,5vw,4rem)",fontWeight:600,lineHeight:1.15,marginBottom:"1.1rem",color:"var(--text)",maxWidth:640}}>
+            Your repo deserves a<br/><span style={{fontWeight:600,color:"var(--accent2)"}}>better README</span>
           </h1>
           <p style={{color:"var(--muted)",fontSize:"1rem",maxWidth:460,lineHeight:1.7,marginBottom:"2.5rem"}}>
             Connect GitHub, pick a repo or folder, and get a handcrafted README generated from your actual code — then commit it directly.
           </p>
-          <button onClick={() => signIn("github")} style={{display:"flex",alignItems:"center",gap:10,background:"var(--text)",color:"var(--bg)",border:"none",borderRadius:10,padding:"12px 24px",fontSize:".95rem",fontWeight:500,cursor:"pointer",fontFamily:"Sora,sans-serif"}}
+          <button onClick={() => signIn("github")} style={{display:"flex",alignItems:"center",gap:10,background:"var(--text)",color:"var(--bg)",border:"none",borderRadius:10,padding:"12px 24px",fontSize:".95rem",fontWeight:500,cursor:"pointer",fontFamily:"inherit"}}
             onMouseOver={e=>e.currentTarget.style.opacity=".85"} onMouseOut={e=>e.currentTarget.style.opacity="1"}>
             <GitHubIcon size={17} color="var(--bg)" /> Continue with GitHub
           </button>
@@ -292,24 +309,28 @@ export default function Home() {
     <div style={{minHeight:"100vh",display:"flex",flexDirection:"column"}}>
       {/* NAV */}
       <nav style={{height:56,display:"flex",alignItems:"center",justifyContent:"space-between",padding:"0 1.5rem",borderBottom:"1px solid var(--border)",position:"sticky",top:0,background:"rgba(12,12,14,.9)",backdropFilter:"blur(12px)",zIndex:10}}>
-        <span style={{fontFamily:"Lora,serif",fontSize:"1.1rem",fontWeight:500,color:"var(--text)"}}>readmeify</span>
+        <span style={{fontFamily:"inherit",fontSize:"1.1rem",fontWeight:500,color:"var(--text)"}}>readmeify</span>
         <div style={{display:"flex",alignItems:"center",gap:12}}>
           {session.user?.image
             ? <img src={session.user.image} alt="" style={{width:28,height:28,borderRadius:"50%",border:"1px solid var(--border2)"}}/>
             : <div style={{width:28,height:28,borderRadius:"50%",background:"var(--surface2)",border:"1px solid var(--border2)",display:"grid",placeItems:"center",fontSize:".78rem",fontWeight:600}}>{avatarLetter}</div>}
           <span style={{fontSize:".82rem",color:"var(--muted)"}}>{session.user?.name || session.user?.email}</span>
-          <button onClick={() => signOut()} style={{background:"none",border:"1px solid var(--border)",color:"var(--muted)",padding:"5px 12px",borderRadius:7,fontSize:".78rem",cursor:"pointer",fontFamily:"Sora,sans-serif"}}>Sign out</button>
+          <button onClick={() => signOut()} style={{background:"none",border:"1px solid var(--border)",color:"var(--muted)",padding:"5px 12px",borderRadius:7,fontSize:".78rem",cursor:"pointer",fontFamily:"inherit"}}>Sign out</button>
         </div>
       </nav>
 
       <div style={{display:"flex",flex:1,overflow:"hidden"}}>
 
         {/* REPO SIDEBAR */}
-        <div style={{width:260,flexShrink:0,borderRight:"1px solid var(--border)",display:"flex",flexDirection:"column",height:"calc(100vh - 56px)",position:"sticky",top:56,overflow:"hidden"}}>
+        <div style={{width:sidebarWidth,flexShrink:0,borderRight:"1px solid var(--border)",display:"flex",flexDirection:"column",height:"calc(100vh - 56px)",position:"sticky",top:56,overflow:"hidden",position:"relative"}}>
+          {/* horizontal resize handle */}
+          <div onMouseDown={startSidebarDrag} style={{position:"absolute",top:0,right:-3,width:6,height:"100%",cursor:"ew-resize",zIndex:10,display:"flex",alignItems:"center",justifyContent:"center"}}>
+            <div style={{width:2,height:40,borderRadius:2,background:"var(--border2)",opacity:.5}}/>
+          </div>
           <div style={{padding:"1rem",borderBottom:"1px solid var(--border)"}}>
             <div style={{fontSize:".68rem",color:"var(--muted)",fontFamily:"JetBrains Mono,monospace",marginBottom:10,letterSpacing:".06em",textTransform:"uppercase"}}>repositories</div>
             <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Filter repos..."
-              style={{width:"100%",background:"var(--surface2)",border:"1px solid var(--border)",borderRadius:8,padding:"7px 12px",color:"var(--text)",fontSize:".82rem",fontFamily:"Sora,sans-serif",outline:"none"}}/>
+              style={{width:"100%",background:"var(--surface2)",border:"1px solid var(--border)",borderRadius:8,padding:"7px 12px",color:"var(--text)",fontSize:".82rem",fontFamily:"inherit",outline:"none"}}/>
           </div>
           <div style={{flex:1,overflowY:"auto",padding:"8px"}}>
             {reposLoading ? (
@@ -318,7 +339,7 @@ export default function Home() {
               const active = selectedRepo?.id === repo.id;
               return (
                 <div key={repo.id} onClick={() => { setSelectedRepo(repo); setReadme(""); setCommitState("idle"); setInstructions(""); }}
-                  style={{padding:"10px 12px",borderRadius:8,cursor:"pointer",marginBottom:2,background:active?"rgba(91,141,238,.1)":"transparent",border:`1px solid ${active?"rgba(91,141,238,.35)":"transparent"}`,transition:"all .12s"}}>
+                  style={{padding:"10px 12px",borderRadius:8,cursor:"pointer",marginBottom:2,background:active?"rgba(35,134,54,.1)":"transparent",border:`1px solid ${active?"rgba(35,134,54,.3)":"transparent"}`,transition:"all .12s"}}>
                   <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:3}}>
                     <span style={{fontSize:".84rem",fontFamily:"JetBrains Mono,monospace",color:active?"var(--accent2)":"var(--text)",fontWeight:500,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{repo.name}</span>
                     {repo.private && <span style={{fontSize:".62rem",color:"var(--muted)",border:"1px solid var(--border2)",borderRadius:3,padding:"1px 5px"}}>private</span>}
@@ -344,7 +365,7 @@ export default function Home() {
 
               {/* entire repo option */}
               <div onClick={() => setSelectedDir(null)}
-                style={{display:"flex",alignItems:"center",gap:6,padding:"5px 8px",borderRadius:6,cursor:"pointer",marginBottom:2,background:selectedDir===null?"rgba(91,141,238,.1)":"transparent",border:`1px solid ${selectedDir===null?"rgba(91,141,238,.3)":"transparent"}`}}>
+                style={{display:"flex",alignItems:"center",gap:6,padding:"5px 8px",borderRadius:6,cursor:"pointer",marginBottom:2,background:selectedDir===null?"rgba(35,134,54,.1)":"transparent",border:`1px solid ${selectedDir===null?"rgba(35,134,54,.25)":"transparent"}`}}>
                 <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke={selectedDir===null?"var(--accent2)":"var(--muted)"} strokeWidth="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18"/></svg>
                 <span style={{fontSize:".76rem",color:selectedDir===null?"var(--accent2)":"var(--muted)",fontFamily:"JetBrains Mono,monospace"}}>/ entire repo</span>
               </div>
@@ -361,7 +382,7 @@ export default function Home() {
                 return (
                   <div key={item.path}
                     onClick={() => { if (isDir) { toggleDir(item.path); setSelectedDir(item.path); } }}
-                    style={{display:"flex",alignItems:"center",gap:5,padding:"4px 8px",paddingLeft:`${8+depth*12}px`,borderRadius:6,cursor:isDir?"pointer":"default",background:isSelected?"rgba(91,141,238,.08)":"transparent",border:`1px solid ${isSelected?"rgba(91,141,238,.25)":"transparent"}`,marginBottom:1}}>
+                    style={{display:"flex",alignItems:"center",gap:5,padding:"4px 8px",paddingLeft:`${8+depth*12}px`,borderRadius:6,cursor:isDir?"pointer":"default",background:isSelected?"rgba(35,134,54,.08)":"transparent",border:`1px solid ${isSelected?"rgba(35,134,54,.2)":"transparent"}`,marginBottom:1}}>
                     <span style={{color:isSelected?"var(--accent2)":isDir?"var(--muted)":"transparent"}}>
                       {isDir ? <FolderIcon open={isExpanded}/> : <FileIcon/>}
                     </span>
@@ -369,7 +390,7 @@ export default function Home() {
                       {name}
                     </span>
                     {isDir && isSelected && (
-                      <span style={{marginLeft:"auto",fontSize:".58rem",color:"var(--accent)",background:"rgba(91,141,238,.12)",padding:"1px 4px",borderRadius:3,fontFamily:"JetBrains Mono,monospace",flexShrink:0}}>scoped</span>
+                      <span style={{marginLeft:"auto",fontSize:".58rem",color:"var(--accent)",background:"rgba(35,134,54,.12)",padding:"1px 4px",borderRadius:3,fontFamily:"JetBrains Mono,monospace",flexShrink:0}}>scoped</span>
                     )}
                   </div>
                 );
@@ -378,22 +399,17 @@ export default function Home() {
 
             {/* instructions */}
             <div style={{borderTop:"1px solid var(--border)"}}>
-              {/* drag handle */}
-              <div onMouseDown={startDrag}
-                style={{height:6,cursor:"ns-resize",display:"flex",alignItems:"center",justifyContent:"center",userSelect:"none",background:"var(--surface2)",borderBottom:"1px solid var(--border)"}}>
-                <div style={{width:28,height:2,borderRadius:2,background:"var(--border2)"}}/>
-              </div>
               <div style={{padding:"8px 10px"}}>
               <div style={{fontSize:".65rem",color:"var(--muted)",fontFamily:"JetBrains Mono,monospace",letterSpacing:".06em",textTransform:"uppercase",marginBottom:6}}>
                 instructions <span style={{color:"var(--subtle)",textTransform:"none",letterSpacing:0,fontSize:".65rem"}}>(optional)</span>
               </div>
               <textarea value={instructions} onChange={e=>setInstructions(e.target.value)}
                 placeholder="e.g. focus on the API, mention Docker, ignore the /legacy folder..."
-                style={{width:"100%",background:"var(--surface2)",border:"1px solid var(--border)",borderRadius:7,padding:"8px 10px",color:"var(--text)",fontSize:".75rem",fontFamily:"Sora,sans-serif",resize:"none",outline:"none",lineHeight:1.5,height:instHeight}}/>
+                style={{width:"100%",background:"var(--surface2)",border:"1px solid var(--border)",borderRadius:7,padding:"8px 10px",color:"var(--text)",fontSize:".75rem",fontFamily:"inherit",resize:"none",outline:"none",lineHeight:1.5}} rows={4}/>
               {selectedDir && (
                 <div style={{marginTop:6,fontSize:".7rem",color:"var(--accent2)",display:"flex",alignItems:"center",gap:4}}>
                   <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="20 6 9 17 4 12"/></svg>
-                  Scoped to <code style={{fontFamily:"JetBrains Mono,monospace",background:"rgba(91,141,238,.1)",padding:"1px 5px",borderRadius:3}}>{selectedDir}/</code>
+                  Scoped to <code style={{fontFamily:"JetBrains Mono,monospace",background:"rgba(35,134,54,.1)",padding:"1px 5px",borderRadius:3}}>{selectedDir}/</code>
                 </div>
               )}
               </div>
@@ -424,20 +440,20 @@ export default function Home() {
                   <div style={{display:"flex",gap:6,alignItems:"center"}}>
                     <div style={{display:"flex",background:"var(--surface2)",border:"1px solid var(--border)",borderRadius:7,overflow:"hidden"}}>
                       {["preview","raw"].map(v=>(
-                        <button key={v} onClick={()=>setView(v)} style={{padding:"5px 12px",fontSize:".75rem",border:"none",cursor:"pointer",fontFamily:"Sora,sans-serif",background:view===v?"var(--border2)":"transparent",color:view===v?"var(--text)":"var(--muted)"}}>{v}</button>
+                        <button key={v} onClick={()=>setView(v)} style={{padding:"5px 12px",fontSize:".75rem",border:"none",cursor:"pointer",fontFamily:"inherit",background:view===v?"var(--border2)":"transparent",color:view===v?"var(--text)":"var(--muted)"}}>{v}</button>
                       ))}
                     </div>
-                    <button onClick={handleCopy} style={{background:"none",border:"1px solid var(--border)",color:copied?"var(--green)":"var(--muted)",padding:"5px 12px",borderRadius:7,fontSize:".75rem",cursor:"pointer",fontFamily:"Sora,sans-serif"}}>
+                    <button onClick={handleCopy} style={{background:"none",border:"1px solid var(--border)",color:copied?"var(--green)":"var(--muted)",padding:"5px 12px",borderRadius:7,fontSize:".75rem",cursor:"pointer",fontFamily:"inherit"}}>
                       {copied?"Copied!":"Copy"}
                     </button>
                     <button onClick={handleCommit} disabled={commitState==="loading"||commitState==="done"}
-                      style={{display:"flex",alignItems:"center",gap:7,background:commitState==="done"?"rgba(82,208,138,.12)":"rgba(91,141,238,.1)",border:`1px solid ${commitState==="done"?"rgba(82,208,138,.4)":"rgba(91,141,238,.4)"}`,color:commitState==="done"?"var(--green)":commitState==="error"?"var(--red)":"var(--accent2)",padding:"5px 14px",borderRadius:7,fontSize:".78rem",cursor:commitState==="done"?"default":"pointer",fontFamily:"Sora,sans-serif",fontWeight:500}}>
+                      style={{display:"flex",alignItems:"center",gap:7,background:commitState==="done"?"rgba(82,208,138,.12)":"rgba(35,134,54,.1)",border:`1px solid ${commitState==="done"?"rgba(82,208,138,.4)":"rgba(35,134,54,.4)"}`,color:commitState==="done"?"var(--green)":commitState==="error"?"var(--red)":"var(--accent2)",padding:"5px 14px",borderRadius:7,fontSize:".78rem",cursor:commitState==="done"?"default":"pointer",fontFamily:"inherit",fontWeight:500}}>
                       {commitState==="loading"?<><SpinnerIcon/> Committing...</>:commitState==="done"?"✓ Committed":commitState==="error"?"Retry":<><GitHubIcon size={13} color="var(--accent2)"/> Commit to GitHub</>}
                     </button>
                   </div>
                 )}
                 <button onClick={handleGenerate} disabled={generating}
-                  style={{display:"flex",alignItems:"center",gap:8,background:generating?"var(--surface2)":"var(--text)",color:generating?"var(--muted)":"var(--bg)",border:generating?"1px solid var(--border2)":"none",borderRadius:8,padding:"8px 18px",fontSize:".85rem",fontWeight:500,cursor:generating?"not-allowed":"pointer",fontFamily:"Sora,sans-serif"}}>
+                  style={{display:"flex",alignItems:"center",gap:8,background:generating?"var(--surface2)":"var(--text)",color:generating?"var(--muted)":"var(--bg)",border:generating?"1px solid var(--border2)":"none",borderRadius:8,padding:"8px 18px",fontSize:".85rem",fontWeight:500,cursor:generating?"not-allowed":"pointer",fontFamily:"inherit"}}>
                   {generating?<><SpinnerIcon/> Generating...</>:readme?"Regenerate":"Generate README"}
                 </button>
               </div>

@@ -9,10 +9,9 @@
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.20.7",
-    "@google/generative-ai": "^0.24.1",
     "@octokit/rest": "^20.1.1",
-    "groq-sdk": "^0.37.0",
-    "next": "^14.2.35",
+    "groq-sdk": "^0.9.0",
+    "next": "^16.1.6",
     "next-auth": "^4.24.7",
     "react": "^18",
     "react-dom": "^18"
