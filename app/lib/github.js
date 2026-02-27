@@ -4,7 +4,7 @@ function decode(content) {
   return Buffer.from(content, "base64").toString("utf-8");
 }
 
-const CONTEXT_FILES = [
+const CONFIG_FILES = [
   "package.json",
   "requirements.txt",
   "Cargo.toml",
@@ -15,7 +15,26 @@ const CONTEXT_FILES = [
   "pyproject.toml",
 ];
 
-// Extract markdown cells, code cells, AND their text outputs from a .ipynb
+// Extensions worth reading for context
+const SOURCE_EXTENSIONS = [
+  ".py", ".js", ".ts", ".jsx", ".tsx", ".r", ".R",
+  ".sql", ".sh", ".java", ".cpp", ".c", ".cs", ".go",
+  ".rb", ".rs", ".swift", ".kt", ".scala", ".m",
+];
+
+// Files to always skip — no useful context
+const SKIP_PATTERNS = [
+  /node_modules/, /\.git\//, /dist\//, /build\//, /\.next\//,
+  /\.pyc$/, /\.min\.js$/, /package-lock\.json$/, /yarn\.lock$/,
+  /\.png$/, /\.jpg$/, /\.jpeg$/, /\.gif$/, /\.svg$/, /\.ico$/,
+  /\.pdf$/, /\.zip$/, /\.tar$/, /\.gz$/,
+];
+
+function shouldSkip(path) {
+  return SKIP_PATTERNS.some((p) => p.test(path));
+}
+
+// Extract markdown + code cells + outputs from a .ipynb
 function extractNotebookText(raw) {
   try {
     const nb = JSON.parse(raw);
@@ -29,7 +48,6 @@ function extractNotebookText(raw) {
 
       if (cell.cell_type === "markdown" && src.trim()) {
         lines.push(src.trim());
-
       } else if (cell.cell_type === "code") {
         if (src.trim()) {
           const meaningful = src
@@ -40,9 +58,7 @@ function extractNotebookText(raw) {
             lines.push("```python\n" + src.trim() + "\n```");
           }
         }
-
-        // Cell outputs — this is where accuracy scores, print statements,
-        // silhouette scores, cluster results etc. actually live
+        // Cell outputs — where accuracy scores, print results etc. live
         const outputs = cell.outputs || [];
         for (const out of outputs) {
           if (out.output_type === "stream" && out.text) {
@@ -61,10 +77,8 @@ function extractNotebookText(raw) {
           }
         }
       }
-
       if (lines.join("\n").length > 6000) break;
     }
-
     return lines.join("\n\n");
   } catch {
     return null;
@@ -91,23 +105,24 @@ export async function getRepoContext(accessToken, owner, repo, subdir = null) {
     .map((f) => (subdir ? f.path.replace(subdir + "/", "") : f.path))
     .join("\n");
 
-  const contextSnippets = [];
+  // --- Config files first ---
+  const configSnippets = [];
   const searchPaths = subdir
-    ? CONTEXT_FILES.map((f) => `${subdir}/${f}`).concat(CONTEXT_FILES)
-    : CONTEXT_FILES;
+    ? CONFIG_FILES.map((f) => `${subdir}/${f}`).concat(CONFIG_FILES)
+    : CONFIG_FILES;
 
   for (const filepath of searchPaths) {
     try {
       const { data } = await octokit.repos.getContent({ owner, repo, path: filepath });
       if (data.content) {
         const content = decode(data.content).slice(0, 1500);
-        contextSnippets.push(`=== ${filepath} ===\n${content}`);
+        configSnippets.push(`=== ${filepath} ===\n${content}`);
       }
     } catch {}
-    if (contextSnippets.length >= 2) break;
+    if (configSnippets.length >= 2) break;
   }
 
-  // Read up to 3 notebooks, extract source + outputs
+  // --- Notebooks ---
   const notebookSnippets = [];
   const notebookFiles = scopedFiles
     .filter((f) => f.path.endsWith(".ipynb"))
@@ -127,6 +142,28 @@ export async function getRepoContext(accessToken, owner, repo, subdir = null) {
     } catch {}
   }
 
+  // --- Source files ---
+  // Read up to 8 source files, 1000 chars each, skip generated/binary files
+  const sourceSnippets = [];
+  const sourceFiles = scopedFiles
+    .filter((f) => {
+      if (shouldSkip(f.path)) return false;
+      const ext = "." + f.path.split(".").pop().toLowerCase();
+      return SOURCE_EXTENSIONS.includes(ext);
+    })
+    .slice(0, 8);
+
+  for (const file of sourceFiles) {
+    try {
+      const { data } = await octokit.repos.getContent({ owner, repo, path: file.path });
+      if (data.content) {
+        const content = decode(data.content).slice(0, 1000);
+        const displayPath = subdir ? file.path.replace(subdir + "/", "") : file.path;
+        sourceSnippets.push(`=== ${displayPath} ===\n${content}`);
+      }
+    } catch {}
+  }
+
   const { data: repoMeta } = await octokit.repos.get({ owner, repo });
 
   return {
@@ -136,8 +173,9 @@ export async function getRepoContext(accessToken, owner, repo, subdir = null) {
     stars: repoMeta.stargazers_count,
     topics: repoMeta.topics || [],
     fileTree: tree,
-    configFiles: contextSnippets.join("\n\n"),
+    configFiles: configSnippets.join("\n\n"),
     notebookContent: notebookSnippets.join("\n\n"),
+    sourceFiles: sourceSnippets.join("\n\n"),
   };
 }
 

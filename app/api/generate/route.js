@@ -22,24 +22,26 @@ export async function POST(req) {
     ? `You are generating a README specifically for the \`${subdir}/\` subdirectory, not the entire repo.`
     : "You are generating a README for the entire repository.";
 
-  const hasInstructions = instructions?.trim().length > 0;
   const hasNotebooks = context.notebookContent?.length > 0;
+  const hasSource = context.sourceFiles?.length > 0;
+  const hasInstructions = instructions?.trim().length > 0;
 
+  // Build context block — notebooks are highest priority for results/methods,
+  // source files for understanding what the project actually does
   const repoContext = [
-    context.configFiles ? `FILE CONTENTS (config/dependencies):\n${context.configFiles}` : "",
+    context.configFiles
+      ? `CONFIG FILES (dependencies, scripts):\n${context.configFiles}`
+      : "",
+    hasSource
+      ? `SOURCE FILES (read these to understand what the project does):\n${context.sourceFiles}`
+      : "",
     hasNotebooks
-      ? `NOTEBOOK CONTENTS (extracted from .ipynb files — use this as the PRIMARY source for all project content):\n${context.notebookContent}`
+      ? `NOTEBOOK CONTENTS (cells + outputs — PRIMARY source for methods and results):\n${context.notebookContent}`
       : "",
   ].filter(Boolean).join("\n\n");
 
-  // If instructions contain an example README, extract it as a style/structure reference
   const instructionsSection = hasInstructions
-    ? `\nUSER GUIDANCE (read carefully):
-- If the user references an example README, use it ONLY to match the section names, formatting style, and tone
-- Use the actual notebook content above for all factual details — methods, results, dataset info
-- Do NOT copy any text from the example verbatim
-- Fix obvious errors (wrong project name, wrong objective, mismatched content)
-User said: ${instructions.trim()}\n`
+    ? `\nUSER GUIDANCE (use to understand intent, tone, and structure — do NOT copy verbatim, do NOT reproduce example READMEs word for word):\n${instructions.trim()}\n`
     : "";
 
   const prompt = `You are an expert technical writer generating a README.md from scratch.
@@ -48,6 +50,7 @@ ${scopeNote}
 
 Repository: ${subdir ? `${repo}/${subdir}` : repo}
 Language: ${context.language}
+Topics: ${context.topics.join(", ") || "none"}
 
 FILE STRUCTURE:
 ${context.fileTree}
@@ -55,18 +58,13 @@ ${context.fileTree}
 ${repoContext}
 ${instructionsSection}
 Write a README.md that:
-- Matches this exact section structure (in order):
-  1. Title + one-line description
-  2. Tech stack badges (shields.io)
-  3. Problem Description and Motivation
-  4. Dataset Description (source, features, size, preprocessing)
-  5. Project Structure (use the actual file tree above)
-  6. Setup Instructions (clone, install, run)
-  7. Methods Used (with subsections for each technique)
-  8. Results Summary (specific numbers and findings from the notebook)
-  9. Team Member Contributions (if inferable, otherwise omit)
-- Uses the notebook content as the source of truth for all methods and results
-- Rewrites everything in clean technical prose — never copies text verbatim
+- Opens with 1-2 sentences describing what the project actually does (inferred from the source/notebook content, not just the name)
+- Uses source files and notebooks as the ground truth for all technical details
+- If notebooks are present, uses their outputs for real results, metrics, and findings — not guesses
+- Matches the section structure and depth from any example in the user guidance (if provided)
+- Includes tech stack badges (shields.io format)
+- Has clear Setup/Installation and Usage sections
+- Rewrites everything in clean technical prose — never copies text verbatim from any provided content
 - Outputs only raw markdown, no preamble or explanation`;
 
   const stream = await groq.chat.completions.create({
