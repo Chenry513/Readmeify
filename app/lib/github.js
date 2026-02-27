@@ -1,11 +1,9 @@
 import { Octokit } from "@octokit/rest";
 
-// Decode base64 content from GitHub API
 function decode(content) {
   return Buffer.from(content, "base64").toString("utf-8");
 }
 
-// Files we want to read for context (in priority order)
 const CONTEXT_FILES = [
   "package.json",
   "requirements.txt",
@@ -17,10 +15,10 @@ const CONTEXT_FILES = [
   "pyproject.toml",
 ];
 
-export async function getRepoContext(accessToken, owner, repo) {
+export async function getRepoContext(accessToken, owner, repo, subdir = null) {
   const octokit = new Octokit({ auth: accessToken });
 
-  // 1. Get the full file tree
+  // Get the full file tree, scoped to subdir if provided
   const { data: treeData } = await octokit.git.getTree({
     owner,
     repo,
@@ -28,29 +26,36 @@ export async function getRepoContext(accessToken, owner, repo) {
     recursive: "1",
   });
 
-  // Build a readable file tree string (max 120 entries to keep prompt lean)
-  const tree = treeData.tree
-    .filter((f) => f.type === "blob")
+  // Filter to subdir if specified
+  const allFiles = treeData.tree.filter((f) => f.type === "blob");
+  const scopedFiles = subdir
+    ? allFiles.filter((f) => f.path.startsWith(subdir + "/"))
+    : allFiles;
+
+  const tree = scopedFiles
     .slice(0, 120)
-    .map((f) => f.path)
+    .map((f) => (subdir ? f.path.replace(subdir + "/", "") : f.path))
     .join("\n");
 
-  // 2. Try to grab dependency/config files for tech stack context
+  // Look for config files — check subdir first, then root
   const contextSnippets = [];
-  for (const filename of CONTEXT_FILES) {
+  const searchPaths = subdir
+    ? CONTEXT_FILES.map((f) => `${subdir}/${f}`).concat(CONTEXT_FILES)
+    : CONTEXT_FILES;
+
+  for (const filepath of searchPaths) {
     try {
-      const { data } = await octokit.repos.getContent({ owner, repo, path: filename });
+      const { data } = await octokit.repos.getContent({ owner, repo, path: filepath });
       if (data.content) {
-        const content = decode(data.content).slice(0, 1500); // cap size
-        contextSnippets.push(`=== ${filename} ===\n${content}`);
+        const content = decode(data.content).slice(0, 1500);
+        contextSnippets.push(`=== ${filepath} ===\n${content}`);
       }
     } catch {
-      // File doesn't exist in this repo, skip
+      // doesn't exist, skip
     }
-    if (contextSnippets.length >= 2) break; // 2 config files is plenty
+    if (contextSnippets.length >= 2) break;
   }
 
-  // 3. Grab repo metadata
   const { data: repoMeta } = await octokit.repos.get({ owner, repo });
 
   return {
@@ -83,16 +88,31 @@ export async function getUserRepos(accessToken) {
   }));
 }
 
-export async function commitReadme(accessToken, owner, repo, content) {
+export async function getRepoTree(accessToken, owner, repo) {
   const octokit = new Octokit({ auth: accessToken });
+  const { data: treeData } = await octokit.git.getTree({
+    owner,
+    repo,
+    tree_sha: "HEAD",
+    recursive: "1",
+  });
+  // Return dirs and files, max 200 entries
+  return treeData.tree
+    .filter((f) => f.path.split("/").length <= 4) // max 4 levels deep
+    .slice(0, 200)
+    .map((f) => ({ path: f.path, type: f.type }));
+}
 
-  // Check if README.md already exists so we can update (not create)
+export async function commitReadme(accessToken, owner, repo, content, subdir = null) {
+  const octokit = new Octokit({ auth: accessToken });
+  const filePath = subdir ? `${subdir}/README.md` : "README.md";
+
   let sha;
   try {
-    const { data } = await octokit.repos.getContent({ owner, repo, path: "README.md" });
+    const { data } = await octokit.repos.getContent({ owner, repo, path: filePath });
     sha = data.sha;
   } catch {
-    // File doesn't exist yet — that's fine, sha stays undefined
+    // file doesn't exist yet
   }
 
   const encoded = Buffer.from(content).toString("base64");
@@ -100,8 +120,10 @@ export async function commitReadme(accessToken, owner, repo, content) {
   await octokit.repos.createOrUpdateFileContents({
     owner,
     repo,
-    path: "README.md",
-    message: sha ? "docs: update README via readmeify" : "docs: add README via readmeify",
+    path: filePath,
+    message: sha
+      ? `docs: update ${filePath} via readmeify`
+      : `docs: add ${filePath} via readmeify`,
     content: encoded,
     ...(sha ? { sha } : {}),
   });

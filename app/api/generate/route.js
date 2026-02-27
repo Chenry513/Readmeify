@@ -11,16 +11,26 @@ export async function POST(req) {
     return Response.json({ error: "Not authenticated" }, { status: 401 });
   }
 
-  const { owner, repo } = await req.json();
+  const { owner, repo, subdir, instructions } = await req.json();
   if (!owner || !repo) {
     return Response.json({ error: "Missing owner or repo" }, { status: 400 });
   }
 
-  const context = await getRepoContext(session.accessToken, owner, repo);
+  const context = await getRepoContext(session.accessToken, owner, repo, subdir || null);
+
+  const scopeNote = subdir
+    ? `You are generating a README specifically for the \`${subdir}/\` subdirectory, not the entire repo.`
+    : "You are generating a README for the entire repository.";
+
+  const instructionsNote = instructions?.trim()
+    ? `\nExtra instructions from the user:\n${instructions.trim()}`
+    : "";
 
   const prompt = `You are an expert technical writer. Generate a professional, well-structured README.md for the following GitHub repository.
 
-Repository name: ${context.name}
+${scopeNote}
+
+Repository name: ${subdir ? `${repo}/${subdir}` : repo}
 Description: ${context.description || "not provided"}
 Primary language: ${context.language}
 Topics/tags: ${context.topics.join(", ") || "none"}
@@ -29,6 +39,7 @@ File structure:
 ${context.fileTree}
 
 ${context.configFiles ? `Configuration files:\n${context.configFiles}` : ""}
+${instructionsNote}
 
 Write a README.md that:
 - Opens with a concise 1-2 sentence description of what the project does
