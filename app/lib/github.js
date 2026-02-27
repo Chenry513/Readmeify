@@ -15,30 +15,56 @@ const CONTEXT_FILES = [
   "pyproject.toml",
 ];
 
-// Pull markdown cells + meaningful code cells from a .ipynb file
+// Extract markdown cells, code cells, AND their text outputs from a .ipynb
 function extractNotebookText(raw) {
   try {
     const nb = JSON.parse(raw);
     const cells = nb.cells || nb.worksheets?.[0]?.cells || [];
     const lines = [];
+
     for (const cell of cells) {
       const src = Array.isArray(cell.source)
         ? cell.source.join("")
         : cell.source || "";
-      if (!src.trim()) continue;
-      if (cell.cell_type === "markdown") {
+
+      if (cell.cell_type === "markdown" && src.trim()) {
         lines.push(src.trim());
+
       } else if (cell.cell_type === "code") {
-        const meaningful = src
-          .split("\n")
-          .filter((l) => l.trim() && !l.trim().startsWith("#"))
-          .join("\n");
-        if (meaningful.length > 30) {
-          lines.push("```python\n" + src.trim() + "\n```");
+        if (src.trim()) {
+          const meaningful = src
+            .split("\n")
+            .filter((l) => l.trim() && !l.trim().startsWith("#"))
+            .join("\n");
+          if (meaningful.length > 30) {
+            lines.push("```python\n" + src.trim() + "\n```");
+          }
+        }
+
+        // Cell outputs — this is where accuracy scores, print statements,
+        // silhouette scores, cluster results etc. actually live
+        const outputs = cell.outputs || [];
+        for (const out of outputs) {
+          if (out.output_type === "stream" && out.text) {
+            const txt = Array.isArray(out.text) ? out.text.join("") : out.text;
+            if (txt.trim()) lines.push("[output]\n" + txt.trim());
+          }
+          if (
+            (out.output_type === "execute_result" || out.output_type === "display_data") &&
+            out.data
+          ) {
+            const txt = out.data["text/plain"];
+            if (txt) {
+              const t = Array.isArray(txt) ? txt.join("") : txt;
+              if (t.trim()) lines.push("[result]\n" + t.trim());
+            }
+          }
         }
       }
-      if (lines.join("\n").length > 4000) break;
+
+      if (lines.join("\n").length > 6000) break;
     }
+
     return lines.join("\n\n");
   } catch {
     return null;
@@ -65,7 +91,6 @@ export async function getRepoContext(accessToken, owner, repo, subdir = null) {
     .map((f) => (subdir ? f.path.replace(subdir + "/", "") : f.path))
     .join("\n");
 
-  // Config files
   const contextSnippets = [];
   const searchPaths = subdir
     ? CONTEXT_FILES.map((f) => `${subdir}/${f}`).concat(CONTEXT_FILES)
@@ -82,7 +107,7 @@ export async function getRepoContext(accessToken, owner, repo, subdir = null) {
     if (contextSnippets.length >= 2) break;
   }
 
-  // Jupyter notebooks — read up to 3, extract markdown + code cells
+  // Read up to 3 notebooks, extract source + outputs
   const notebookSnippets = [];
   const notebookFiles = scopedFiles
     .filter((f) => f.path.endsWith(".ipynb"))
