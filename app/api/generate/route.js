@@ -22,11 +22,33 @@ export async function POST(req) {
     ? `You are generating a README specifically for the \`${subdir}/\` subdirectory, not the entire repo.`
     : "You are generating a README for the entire repository.";
 
-  const instructionsNote = instructions?.trim()
-    ? `\nExtra instructions from the user:\n${instructions.trim()}`
-    : "";
+  const hasInstructions = instructions?.trim().length > 0;
 
-  const prompt = `You are an expert technical writer. Generate a professional, well-structured README.md for the following GitHub repository.
+  // If the user provided detailed instructions, treat them as the primary source.
+  // Use the repo file tree only as supplementary context.
+  const prompt = hasInstructions
+    ? `You are an expert technical writer. Generate a professional, well-structured README.md.
+
+${scopeNote}
+
+Repository name: ${subdir ? `${repo}/${subdir}` : repo}
+Primary language: ${context.language}
+
+FILE STRUCTURE (for reference only):
+${context.fileTree}
+
+USER-PROVIDED CONTENT (treat this as the primary source of truth — use it directly to write the README, do not ignore or override it):
+${instructions.trim()}
+
+Instructions:
+- Use the user-provided content above as your main source. Extract the project name, description, methods, results, and any other details directly from it.
+- Do NOT fall back to generic README templates or invent details not present in the user content.
+- Use the file structure only to fill gaps (e.g. installation steps, tech stack) not covered by the user content.
+- Include relevant tech stack badges based on what is mentioned in the user content or visible in the file structure.
+- Use clean markdown formatting with proper headers, code blocks, and tables where appropriate.
+- Do not include any preamble or explanation — output only the raw markdown content of the README.`
+
+    : `You are an expert technical writer. Generate a professional, well-structured README.md for the following GitHub repository.
 
 ${scopeNote}
 
@@ -39,7 +61,6 @@ File structure:
 ${context.fileTree}
 
 ${context.configFiles ? `Configuration files:\n${context.configFiles}` : ""}
-${instructionsNote}
 
 Write a README.md that:
 - Opens with a concise 1-2 sentence description of what the project does
