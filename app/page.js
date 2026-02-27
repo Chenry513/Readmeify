@@ -118,6 +118,24 @@ export default function Home() {
 
   // instructions
   const [instructions, setInstructions] = useState("");
+  const [instHeight, setInstHeight] = useState(120);
+  const dragRef = useRef(null);
+
+  const startDrag = (e) => {
+    e.preventDefault();
+    const startY = e.clientY;
+    const startH = instHeight;
+    const onMove = (ev) => {
+      const delta = startY - ev.clientY; // drag up = taller
+      setInstHeight(Math.min(400, Math.max(60, startH + delta)));
+    };
+    const onUp = () => {
+      window.removeEventListener("mousemove", onMove);
+      window.removeEventListener("mouseup", onUp);
+    };
+    window.addEventListener("mousemove", onMove);
+    window.addEventListener("mouseup", onUp);
+  };
 
   // output
   const [readme, setReadme] = useState("");
@@ -359,20 +377,26 @@ export default function Home() {
             </div>
 
             {/* instructions */}
-            <div style={{borderTop:"1px solid var(--border)",padding:"10px"}}>
+            <div style={{borderTop:"1px solid var(--border)"}}>
+              {/* drag handle */}
+              <div onMouseDown={startDrag}
+                style={{height:6,cursor:"ns-resize",display:"flex",alignItems:"center",justifyContent:"center",userSelect:"none",background:"var(--surface2)",borderBottom:"1px solid var(--border)"}}>
+                <div style={{width:28,height:2,borderRadius:2,background:"var(--border2)"}}/>
+              </div>
+              <div style={{padding:"8px 10px"}}>
               <div style={{fontSize:".65rem",color:"var(--muted)",fontFamily:"JetBrains Mono,monospace",letterSpacing:".06em",textTransform:"uppercase",marginBottom:6}}>
                 instructions <span style={{color:"var(--subtle)",textTransform:"none",letterSpacing:0,fontSize:".65rem"}}>(optional)</span>
               </div>
               <textarea value={instructions} onChange={e=>setInstructions(e.target.value)}
                 placeholder="e.g. focus on the API, mention Docker, ignore the /legacy folder..."
-                rows={4}
-                style={{width:"100%",background:"var(--surface2)",border:"1px solid var(--border)",borderRadius:7,padding:"8px 10px",color:"var(--text)",fontSize:".75rem",fontFamily:"Sora,sans-serif",resize:"none",outline:"none",lineHeight:1.5}}/>
+                style={{width:"100%",background:"var(--surface2)",border:"1px solid var(--border)",borderRadius:7,padding:"8px 10px",color:"var(--text)",fontSize:".75rem",fontFamily:"Sora,sans-serif",resize:"none",outline:"none",lineHeight:1.5,height:instHeight}}/>
               {selectedDir && (
                 <div style={{marginTop:6,fontSize:".7rem",color:"var(--accent2)",display:"flex",alignItems:"center",gap:4}}>
                   <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="20 6 9 17 4 12"/></svg>
                   Scoped to <code style={{fontFamily:"JetBrains Mono,monospace",background:"rgba(91,141,238,.1)",padding:"1px 5px",borderRadius:3}}>{selectedDir}/</code>
                 </div>
               )}
+              </div>
             </div>
           </div>
         )}

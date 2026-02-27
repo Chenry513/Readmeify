@@ -27,12 +27,19 @@ export async function POST(req) {
 
   const repoContext = [
     context.configFiles ? `FILE CONTENTS (config/dependencies):\n${context.configFiles}` : "",
-    hasNotebooks ? `NOTEBOOK CONTENTS (extracted from .ipynb files — use this as the primary source for methods, results, and findings):\n${context.notebookContent}` : "",
+    hasNotebooks
+      ? `NOTEBOOK CONTENTS (extracted from .ipynb files — use this as the PRIMARY source for all project content):\n${context.notebookContent}`
+      : "",
   ].filter(Boolean).join("\n\n");
 
-  // Instructions are GUIDANCE, not content to reproduce
+  // If instructions contain an example README, extract it as a style/structure reference
   const instructionsSection = hasInstructions
-    ? `\nUSER GUIDANCE (use this to understand intent and structure only — do NOT copy it verbatim):\n${instructions.trim()}\n`
+    ? `\nUSER GUIDANCE (read carefully):
+- If the user references an example README, use it ONLY to match the section names, formatting style, and tone
+- Use the actual notebook content above for all factual details — methods, results, dataset info
+- Do NOT copy any text from the example verbatim
+- Fix obvious errors (wrong project name, wrong objective, mismatched content)
+User said: ${instructions.trim()}\n`
     : "";
 
   const prompt = `You are an expert technical writer generating a README.md from scratch.
@@ -47,15 +54,20 @@ ${context.fileTree}
 
 ${repoContext}
 ${instructionsSection}
-Your task:
-- Write a clean, professional README.md based on the actual repo content above
-- If notebook content is present, use it as the primary source for methods, results, and findings
-- If user guidance references an example README, use it only to understand desired structure — do NOT reproduce its text
-- Fix any obvious errors you find (wrong project name, wrong objective, etc.)
-- Include tech stack badges (shields.io format)
-- Include sections: Overview, Dataset, Methods, Results, Setup, Contributors (where relevant)
-- Rewrite everything in clean technical prose — do not copy-paste from any provided content
-- Output only raw markdown, no preamble or explanation`;
+Write a README.md that:
+- Matches this exact section structure (in order):
+  1. Title + one-line description
+  2. Tech stack badges (shields.io)
+  3. Problem Description and Motivation
+  4. Dataset Description (source, features, size, preprocessing)
+  5. Project Structure (use the actual file tree above)
+  6. Setup Instructions (clone, install, run)
+  7. Methods Used (with subsections for each technique)
+  8. Results Summary (specific numbers and findings from the notebook)
+  9. Team Member Contributions (if inferable, otherwise omit)
+- Uses the notebook content as the source of truth for all methods and results
+- Rewrites everything in clean technical prose — never copies text verbatim
+- Outputs only raw markdown, no preamble or explanation`;
 
   const stream = await groq.chat.completions.create({
     model: "llama-3.3-70b-versatile",
