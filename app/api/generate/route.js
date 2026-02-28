@@ -1,9 +1,9 @@
 import { getServerSession } from "next-auth";
 import { authOptions } from "../auth/[...nextauth]/route";
 import { getRepoContext } from "../../lib/github";
-import Anthropic from "@anthropic-ai/sdk";
+import Groq from "groq-sdk";
 
-const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
 
 export async function POST(req) {
   const session = await getServerSession(authOptions);
@@ -46,14 +46,25 @@ ${contextBlock}
 
 Write the README in first person, direct voice. Open with what the project does. Be specific. Include setup with exact env vars. End with stack line. Output only raw markdown.`;
 
-  const message = await anthropic.messages.create({
-    model: "claude-haiku-4-5",
-    max_tokens: 1500,
+  const stream = await groq.chat.completions.create({
+    model: "llama-3.3-70b-versatile",
     messages: [{ role: "user", content: prompt }],
+    stream: true,
+    max_tokens: 2000,
   });
 
-  const text = message.content[0].text;
-  return new Response(text, {
+  const encoder = new TextEncoder();
+  const readable = new ReadableStream({
+    async start(controller) {
+      for await (const chunk of stream) {
+        const text = chunk.choices[0]?.delta?.content || "";
+        if (text) controller.enqueue(encoder.encode(text));
+      }
+      controller.close();
+    },
+  });
+
+  return new Response(readable, {
     headers: { "Content-Type": "text/plain; charset=utf-8" },
   });
 }
