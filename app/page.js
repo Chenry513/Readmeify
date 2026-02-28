@@ -328,7 +328,7 @@ export default function Home() {
             <div style={{width:2,height:40,borderRadius:2,background:"var(--border2)",opacity:.5}}/>
           </div>
           <div style={{padding:"1rem",borderBottom:"1px solid var(--border)"}}>
-            <div style={{fontSize:".68rem",color:"var(--muted)",fontFamily:"inherit",marginBottom:10,letterSpacing:"0",textTransform:"none"}}>repositories</div>
+            <div style={{fontSize:".75rem",color:"var(--muted)",fontFamily:"inherit",marginBottom:10,letterSpacing:"0",textTransform:"none",fontWeight:500}}>repositories</div>
             <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Filter repos..."
               style={{width:"100%",background:"var(--surface2)",border:"1px solid var(--border)",borderRadius:8,padding:"7px 12px",color:"var(--text)",fontSize:".82rem",fontFamily:"inherit",outline:"none"}}/>
           </div>
@@ -341,7 +341,7 @@ export default function Home() {
                 <div key={repo.id} onClick={() => { setSelectedRepo(repo); setReadme(""); setCommitState("idle"); setInstructions(""); }}
                   style={{padding:"10px 12px",borderRadius:8,cursor:"pointer",marginBottom:2,background:active?"rgba(35,134,54,.1)":"transparent",border:`1px solid ${active?"rgba(35,134,54,.3)":"transparent"}`,transition:"all .12s"}}>
                   <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:3}}>
-                    <span style={{fontSize:".84rem",fontFamily:"inherit",color:active?"var(--accent2)":"var(--text)",fontWeight:500,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{repo.name}</span>
+                    <span style={{fontSize:".85rem",fontFamily:"inherit",color:active?"var(--accent2)":"var(--text)",fontWeight:500,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{repo.name}</span>
                     {repo.private && <span style={{fontSize:".62rem",color:"var(--muted)",border:"1px solid var(--border2)",borderRadius:3,padding:"1px 5px"}}>private</span>}
                   </div>
                   {repo.description && <div style={{fontSize:".75rem",color:"var(--muted)",marginBottom:5,lineHeight:1.4,overflow:"hidden",display:"-webkit-box",WebkitLineClamp:2,WebkitBoxOrient:"vertical"}}>{repo.description}</div>}
@@ -362,7 +362,7 @@ export default function Home() {
 
             {/* file tree */}
             <div style={{flex:1,overflow:"auto",padding:"10px 8px"}}>
-              <div style={{fontSize:".65rem",color:"var(--muted)",fontFamily:"inherit",letterSpacing:"0",textTransform:"none",marginBottom:8,padding:"0 4px"}}>scope to folder</div>
+              <div style={{fontSize:".75rem",color:"var(--muted)",fontFamily:"inherit",letterSpacing:"0",textTransform:"none",marginBottom:8,padding:"0 4px",fontWeight:500}}>scope to folder</div>
 
               {/* entire repo option */}
               <div onClick={() => setSelectedDir(null)}
@@ -399,14 +399,13 @@ export default function Home() {
             </div>
 
             {/* instructions */}
-            <div style={{borderTop:"1px solid var(--border)",flexShrink:0}}>
-              <div style={{padding:"8px 10px"}}>
-              <div style={{fontSize:".65rem",color:"var(--muted)",fontFamily:"inherit",letterSpacing:"0",textTransform:"none",marginBottom:6}}>
+            <div style={{borderTop:"1px solid var(--border)",flexShrink:0,padding:"10px 12px"}}>
+              <div style={{fontSize:".75rem",color:"var(--muted)",fontFamily:"inherit",letterSpacing:"0",textTransform:"none",marginBottom:6}}>
                 instructions <span style={{color:"var(--subtle)",textTransform:"none",letterSpacing:0,fontSize:".65rem"}}>(optional)</span>
               </div>
               <textarea value={instructions} onChange={e=>setInstructions(e.target.value)}
                 placeholder="e.g. focus on the API, mention Docker, ignore the /legacy folder..."
-                style={{width:"100%",background:"var(--surface2)",border:"1px solid var(--border)",borderRadius:7,padding:"8px 10px",color:"var(--text)",fontSize:".75rem",fontFamily:"inherit",resize:"none",outline:"none",lineHeight:1.5,height:110}} />
+                style={{width:"100%",background:"var(--surface2)",border:"1px solid var(--border)",borderRadius:7,padding:"8px 10px",color:"var(--text)",fontSize:".75rem",fontFamily:"inherit",resize:"none",outline:"none",lineHeight:1.5,height:90,boxSizing:"border-box"} />
               {selectedDir && (
                 <div style={{marginTop:6,fontSize:".7rem",color:"var(--accent2)",display:"flex",alignItems:"center",gap:4}}>
                   <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="20 6 9 17 4 12"/></svg>
