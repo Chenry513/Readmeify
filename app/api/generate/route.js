@@ -18,33 +18,21 @@ export async function POST(req) {
 
   const context = await getRepoContext(session.accessToken, owner, repo, subdir || null);
 
-  console.log("[generate] repo:", repo, "subdir:", subdir);
-  console.log("[generate] configFiles length:", context.configFiles?.length || 0);
-  console.log("[generate] sourceFiles length:", context.sourceFiles?.length || 0);
-  console.log("[generate] notebookContent length:", context.notebookContent?.length || 0);
-  console.log("[generate] instructions length:", instructions?.length || 0);
-
   const scopeNote = subdir
     ? `You are generating a README for the ${repo}/${subdir} subdirectory only.`
     : `You are generating a README for the ${repo} repository.`;
 
   const contextParts = [];
-  if (context.configFiles?.length) {
-    contextParts.push("=== CONFIG / DEPENDENCY FILES ===\n" + context.configFiles);
-  }
-  if (context.sourceFiles?.length) {
-    contextParts.push("=== SOURCE CODE ===\n" + context.sourceFiles);
-  }
-  if (context.notebookContent?.length) {
-    contextParts.push("=== NOTEBOOK CELLS + OUTPUTS ===\n" + context.notebookContent);
-  }
+  if (context.configFiles?.length) contextParts.push("=== CONFIG FILES ===\n" + context.configFiles);
+  if (context.sourceFiles?.length) contextParts.push("=== SOURCE CODE ===\n" + context.sourceFiles);
+  if (context.notebookContent?.length) contextParts.push("=== NOTEBOOKS ===\n" + context.notebookContent);
   const contextBlock = contextParts.join("\n\n") || "(no file content available)";
 
   const instructionsBlock = instructions?.trim()
-    ? "=== USER INSTRUCTIONS (highest priority) ===\n" + instructions.trim() + "\n"
+    ? "=== USER INSTRUCTIONS ===\n" + instructions.trim() + "\n"
     : "";
 
-  const prompt = `You are writing a README.md for a GitHub repository. You have been given the actual file contents — use them to write something specific and accurate.
+  const prompt = `You are writing a README.md for a GitHub repository. Use the actual file contents below.
 
 ${scopeNote}
 Language: ${context.language}
@@ -56,35 +44,16 @@ ${context.fileTree}
 
 ${contextBlock}
 
-Write the README with these qualities:
-- First person, direct voice — like a developer explaining their own project to another developer
-- Open with what the project actually does or why it exists — not "I'm excited to introduce" or "X is a tool that"
-- Be specific using details from the file contents above — no generic filler
-- If notebooks are present, use exact numbers from their outputs
-- Include a self-hosting/setup section with the exact env vars you can see in the source
-- End with a stack line (e.g. "Next.js · NextAuth · GitHub API · Vercel")
-- Do not mention internal function names, file paths, or API route implementations
-- Output only raw markdown`;
+Write the README in first person, direct voice. Open with what the project does. Be specific. Include setup with exact env vars. End with stack line. Output only raw markdown.`;
 
-  console.log("[generate] prompt length:", prompt.length);
-
-  const encoder = new TextEncoder();
-  const readable = new ReadableStream({
-    async start(controller) {
-      const stream = anthropic.messages.stream({
-        model: "claude-haiku-4-5",
-        max_tokens: 1500,
-        messages: [{ role: "user", content: prompt }],
-      });
-      stream.on("text", (text) => {
-        controller.enqueue(encoder.encode(text));
-      });
-      await stream.finalMessage();
-      controller.close();
-    },
+  const message = await anthropic.messages.create({
+    model: "claude-haiku-4-5",
+    max_tokens: 1500,
+    messages: [{ role: "user", content: prompt }],
   });
 
-  return new Response(readable, {
+  const text = message.content[0].text;
+  return new Response(text, {
     headers: { "Content-Type": "text/plain; charset=utf-8" },
   });
 }
