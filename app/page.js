@@ -119,7 +119,24 @@ export default function Home() {
   // instructions
   const [instructions, setInstructions] = useState("");
   const [sidebarWidth, setSidebarWidth] = useState(260);
+  const [middleWidth, setMiddleWidth] = useState(230);
   const dragRef = useRef(null);
+
+  const startMiddleDrag = (e) => {
+    e.preventDefault();
+    const startX = e.clientX;
+    const startW = middleWidth;
+    const onMove = (ev) => {
+      const delta = ev.clientX - startX;
+      setMiddleWidth(Math.min(400, Math.max(160, startW + delta)));
+    };
+    const onUp = () => {
+      window.removeEventListener("mousemove", onMove);
+      window.removeEventListener("mouseup", onUp);
+    };
+    window.addEventListener("mousemove", onMove);
+    window.addEventListener("mouseup", onUp);
+  };
 
   const startSidebarDrag = (e) => {
     e.preventDefault();
@@ -244,7 +261,7 @@ export default function Home() {
           <span style={{fontFamily:"inherit",fontSize:"1.15rem",fontWeight:500,color:"var(--text)",letterSpacing:"-.01em"}}>readmeify</span>
         </nav>
         <div style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",padding:"4rem 2rem",textAlign:"center"}}>
-          <div style={{display:"inline-block",padding:"5px 12px",borderRadius:20,border:"1px solid var(--border2)",color:"var(--muted)",fontSize:".75rem",marginBottom:"1.8rem",fontFamily:"JetBrains Mono,monospace",letterSpacing:".04em"}}>
+          <div style={{display:"inline-block",padding:"5px 12px",borderRadius:20,border:"1px solid var(--border2)",color:"var(--muted)",fontSize:".75rem",marginBottom:"1.8rem",fontFamily:"inherit",letterSpacing:"0"}}>
             README generator
           </div>
           <h1 style={{fontFamily:"inherit",fontSize:"clamp(2.4rem,5vw,4rem)",fontWeight:600,lineHeight:1.15,marginBottom:"1.1rem",color:"var(--text)",maxWidth:640}}>
@@ -262,7 +279,7 @@ export default function Home() {
             {[["Connect","Sign in with your GitHub account"],["Pick a repo","Browse folders or pick the whole repo"],["Generate","AI writes a README from real context"],["Commit","Push it directly to your repo"]].map(([t,d],i,arr)=>(
               <div key={t} style={{flex:1,textAlign:"center",position:"relative",padding:"0 .5rem"}}>
                 {i<arr.length-1 && <div style={{position:"absolute",right:0,top:"14px",color:"var(--border2)",fontSize:".8rem"}}>→</div>}
-                <div style={{width:28,height:28,borderRadius:"50%",border:"1px solid var(--border2)",color:"var(--muted)",display:"grid",placeItems:"center",fontFamily:"JetBrains Mono,monospace",fontSize:".7rem",margin:"0 auto 10px"}}>{String(i+1).padStart(2,"0")}</div>
+                <div style={{width:28,height:28,borderRadius:"50%",border:"1px solid var(--border2)",color:"var(--muted)",display:"grid",placeItems:"center",fontFamily:"inherit",fontSize:".7rem",margin:"0 auto 10px"}}>{String(i+1).padStart(2,"0")}</div>
                 <div style={{fontSize:".82rem",fontWeight:500,marginBottom:4}}>{t}</div>
                 <div style={{fontSize:".74rem",color:"var(--muted)",lineHeight:1.5}}>{d}</div>
               </div>
@@ -311,7 +328,7 @@ export default function Home() {
             <div style={{width:2,height:40,borderRadius:2,background:"var(--border2)",opacity:.5}}/>
           </div>
           <div style={{padding:"1rem",borderBottom:"1px solid var(--border)"}}>
-            <div style={{fontSize:".68rem",color:"var(--muted)",fontFamily:"JetBrains Mono,monospace",marginBottom:10,letterSpacing:".06em",textTransform:"uppercase"}}>repositories</div>
+            <div style={{fontSize:".68rem",color:"var(--muted)",fontFamily:"inherit",marginBottom:10,letterSpacing:"0",textTransform:"none"}}>repositories</div>
             <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Filter repos..."
               style={{width:"100%",background:"var(--surface2)",border:"1px solid var(--border)",borderRadius:8,padding:"7px 12px",color:"var(--text)",fontSize:".82rem",fontFamily:"inherit",outline:"none"}}/>
           </div>
@@ -324,7 +341,7 @@ export default function Home() {
                 <div key={repo.id} onClick={() => { setSelectedRepo(repo); setReadme(""); setCommitState("idle"); setInstructions(""); }}
                   style={{padding:"10px 12px",borderRadius:8,cursor:"pointer",marginBottom:2,background:active?"rgba(35,134,54,.1)":"transparent",border:`1px solid ${active?"rgba(35,134,54,.3)":"transparent"}`,transition:"all .12s"}}>
                   <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:3}}>
-                    <span style={{fontSize:".84rem",fontFamily:"JetBrains Mono,monospace",color:active?"var(--accent2)":"var(--text)",fontWeight:500,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{repo.name}</span>
+                    <span style={{fontSize:".84rem",fontFamily:"inherit",color:active?"var(--accent2)":"var(--text)",fontWeight:500,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{repo.name}</span>
                     {repo.private && <span style={{fontSize:".62rem",color:"var(--muted)",border:"1px solid var(--border2)",borderRadius:3,padding:"1px 5px"}}>private</span>}
                   </div>
                   {repo.description && <div style={{fontSize:".75rem",color:"var(--muted)",marginBottom:5,lineHeight:1.4,overflow:"hidden",display:"-webkit-box",WebkitLineClamp:2,WebkitBoxOrient:"vertical"}}>{repo.description}</div>}
@@ -340,17 +357,18 @@ export default function Home() {
 
         {/* MIDDLE — file tree + instructions */}
         {selectedRepo && (
-          <div style={{width:230,flexShrink:0,borderRight:"1px solid var(--border)",display:"flex",flexDirection:"column",height:"calc(100vh - 56px)",position:"sticky",top:56,overflow:"hidden"}}>
+          <div style={{width:middleWidth,flexShrink:0,borderRight:"1px solid var(--border)",display:"flex",flexDirection:"column",height:"calc(100vh - 56px)",position:"sticky",top:56,overflow:"hidden",position:"relative"}}>
+            <div onMouseDown={startMiddleDrag} style={{position:"absolute",top:0,right:-3,width:6,height:"100%",cursor:"ew-resize",zIndex:10,display:"flex",alignItems:"center",justifyContent:"center"}}><div style={{width:2,height:40,borderRadius:2,background:"var(--border2)",opacity:.5}}/></div>
 
             {/* file tree */}
             <div style={{flex:1,overflow:"auto",padding:"10px 8px"}}>
-              <div style={{fontSize:".65rem",color:"var(--muted)",fontFamily:"JetBrains Mono,monospace",letterSpacing:".06em",textTransform:"uppercase",marginBottom:8,padding:"0 4px"}}>scope to folder</div>
+              <div style={{fontSize:".65rem",color:"var(--muted)",fontFamily:"inherit",letterSpacing:"0",textTransform:"none",marginBottom:8,padding:"0 4px"}}>scope to folder</div>
 
               {/* entire repo option */}
               <div onClick={() => setSelectedDir(null)}
                 style={{display:"flex",alignItems:"center",gap:6,padding:"5px 8px",borderRadius:6,cursor:"pointer",marginBottom:2,background:selectedDir===null?"rgba(35,134,54,.1)":"transparent",border:`1px solid ${selectedDir===null?"rgba(35,134,54,.25)":"transparent"}`}}>
                 <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke={selectedDir===null?"var(--accent2)":"var(--muted)"} strokeWidth="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18"/></svg>
-                <span style={{fontSize:".76rem",color:selectedDir===null?"var(--accent2)":"var(--muted)",fontFamily:"JetBrains Mono,monospace"}}>/ entire repo</span>
+                <span style={{fontSize:".76rem",color:selectedDir===null?"var(--accent2)":"var(--muted)",fontFamily:"inherit"}}>/ entire repo</span>
               </div>
 
               {treeLoading ? (
@@ -369,11 +387,11 @@ export default function Home() {
                     <span style={{color:isSelected?"var(--accent2)":isDir?"var(--muted)":"transparent"}}>
                       {isDir ? <FolderIcon open={isExpanded}/> : <FileIcon/>}
                     </span>
-                    <span style={{fontSize:".75rem",fontFamily:"JetBrains Mono,monospace",color:isDir?(isSelected?"var(--accent2)":"var(--text)"):"var(--muted)",fontWeight:isDir?500:400,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>
+                    <span style={{fontSize:".75rem",fontFamily:"inherit",color:isDir?(isSelected?"var(--accent2)":"var(--text)"):"var(--muted)",fontWeight:isDir?500:400,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>
                       {name}
                     </span>
                     {isDir && isSelected && (
-                      <span style={{marginLeft:"auto",fontSize:".58rem",color:"var(--accent)",background:"rgba(35,134,54,.12)",padding:"1px 4px",borderRadius:3,fontFamily:"JetBrains Mono,monospace",flexShrink:0}}>scoped</span>
+                      <span style={{marginLeft:"auto",fontSize:".58rem",color:"var(--accent)",background:"rgba(35,134,54,.12)",padding:"1px 4px",borderRadius:3,fontFamily:"inherit",flexShrink:0}}>scoped</span>
                     )}
                   </div>
                 );
@@ -381,18 +399,18 @@ export default function Home() {
             </div>
 
             {/* instructions */}
-            <div style={{borderTop:"1px solid var(--border)"}}>
+            <div style={{borderTop:"1px solid var(--border)",flexShrink:0}}>
               <div style={{padding:"8px 10px"}}>
-              <div style={{fontSize:".65rem",color:"var(--muted)",fontFamily:"JetBrains Mono,monospace",letterSpacing:".06em",textTransform:"uppercase",marginBottom:6}}>
+              <div style={{fontSize:".65rem",color:"var(--muted)",fontFamily:"inherit",letterSpacing:"0",textTransform:"none",marginBottom:6}}>
                 instructions <span style={{color:"var(--subtle)",textTransform:"none",letterSpacing:0,fontSize:".65rem"}}>(optional)</span>
               </div>
               <textarea value={instructions} onChange={e=>setInstructions(e.target.value)}
                 placeholder="e.g. focus on the API, mention Docker, ignore the /legacy folder..."
-                style={{width:"100%",background:"var(--surface2)",border:"1px solid var(--border)",borderRadius:7,padding:"8px 10px",color:"var(--text)",fontSize:".75rem",fontFamily:"inherit",resize:"none",outline:"none",lineHeight:1.5,height:100}} />
+                style={{width:"100%",background:"var(--surface2)",border:"1px solid var(--border)",borderRadius:7,padding:"8px 10px",color:"var(--text)",fontSize:".75rem",fontFamily:"inherit",resize:"none",outline:"none",lineHeight:1.5,height:110}} />
               {selectedDir && (
                 <div style={{marginTop:6,fontSize:".7rem",color:"var(--accent2)",display:"flex",alignItems:"center",gap:4}}>
                   <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="20 6 9 17 4 12"/></svg>
-                  Scoped to <code style={{fontFamily:"JetBrains Mono,monospace",background:"rgba(35,134,54,.1)",padding:"1px 5px",borderRadius:3}}>{selectedDir}/</code>
+                  Scoped to <code style={{fontFamily:"inherit",background:"rgba(35,134,54,.1)",padding:"1px 5px",borderRadius:3}}>{selectedDir}/</code>
                 </div>
               )}
               </div>
@@ -414,7 +432,7 @@ export default function Home() {
               {/* TOOLBAR */}
               <div style={{padding:"12px 20px",borderBottom:"1px solid var(--border)",display:"flex",alignItems:"center",gap:12,flexWrap:"wrap"}}>
                 <div style={{flex:1}}>
-                  <div style={{fontSize:".9rem",fontWeight:500,marginBottom:2,fontFamily:"JetBrains Mono,monospace",color:"var(--text)"}}>
+                  <div style={{fontSize:".9rem",fontWeight:500,marginBottom:2,fontFamily:"inherit",color:"var(--text)"}}>
                     {selectedRepo.fullName}{selectedDir ? `/${selectedDir}` : ""}
                   </div>
                   {selectedRepo.description && <div style={{fontSize:".76rem",color:"var(--muted)"}}>{selectedRepo.description}</div>}
@@ -454,7 +472,7 @@ export default function Home() {
                 {(readme||generating) && (
                   <div style={{maxWidth:view==="raw"?900:780,margin:"0 auto"}}>
                     {view==="raw" ? (
-                      <pre style={{fontFamily:"JetBrains Mono,monospace",fontSize:".76rem",color:"#8080a0",lineHeight:1.8,whiteSpace:"pre-wrap",wordBreak:"break-word"}}>
+                      <pre style={{fontFamily:"inherit",fontSize:".76rem",color:"#8080a0",lineHeight:1.8,whiteSpace:"pre-wrap",wordBreak:"break-word"}}>
                         {readme}{generating&&<span style={{color:"var(--accent2)",animation:"blink 1s step-end infinite"}}>▋</span>}
                       </pre>
                     ) : (
