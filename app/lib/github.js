@@ -80,7 +80,7 @@ function extractNotebookText(raw) {
           }
         }
       }
-      if (lines.join("\n").length > 6000) break;
+      if (lines.join("\n").length > 3000) break;
     }
     return lines.join("\n\n");
   } catch {
@@ -154,13 +154,13 @@ export async function getRepoContext(accessToken, owner, repo, subdir = null) {
       const ext = "." + f.path.split(".").pop().toLowerCase();
       return SOURCE_EXTENSIONS.includes(ext);
     })
-    .slice(0, 8);
+    .slice(0, 5);
 
   for (const file of sourceFiles) {
     try {
       const { data } = await octokit.repos.getContent({ owner, repo, path: file.path });
       if (data.content) {
-        const content = decode(data.content).slice(0, 1000);
+        const content = decode(data.content).slice(0, 600);
         const displayPath = subdir ? file.path.replace(subdir + "/", "") : file.path;
         sourceSnippets.push(`=== ${displayPath} ===\n${content}`);
       }
