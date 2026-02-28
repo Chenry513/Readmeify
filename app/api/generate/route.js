@@ -18,7 +18,6 @@ export async function POST(req) {
 
   const context = await getRepoContext(session.accessToken, owner, repo, subdir || null);
 
-  // Log what we actually read so we can debug
   console.log("[generate] repo:", repo, "subdir:", subdir);
   console.log("[generate] configFiles length:", context.configFiles?.length || 0);
   console.log("[generate] sourceFiles length:", context.sourceFiles?.length || 0);
@@ -29,44 +28,23 @@ export async function POST(req) {
     ? `You are generating a README for the \`${subdir}/\` subdirectory only.`
     : "You are generating a README for the entire repository.";
 
-  // Build the context — put actual file content front and center
   const contextParts = [];
-
   if (context.configFiles?.length) {
     contextParts.push(`=== CONFIG / DEPENDENCY FILES ===\n${context.configFiles}`);
   }
   if (context.sourceFiles?.length) {
-    contextParts.push(`=== SOURCE CODE (read carefully — this is what the project actually does) ===\n${context.sourceFiles}`);
+    contextParts.push(`=== SOURCE CODE ===\n${context.sourceFiles}`);
   }
   if (context.notebookContent?.length) {
-    contextParts.push(`=== NOTEBOOK CELLS + OUTPUTS (use exact results, metrics, numbers from here) ===\n${context.notebookContent}`);
+    contextParts.push(`=== NOTEBOOK CELLS + OUTPUTS ===\n${context.notebookContent}`);
   }
+  const contextBlock = contextParts.join("\n\n") || "(no file content available)";
 
-  const contextBlock = contextParts.length
-    ? contextParts.join("\n\n")
-    : "(no file content could be read — infer from file names only)";
-
-  // Instructions get their own clearly labelled block at the top
   const instructionsBlock = instructions?.trim()
-    ? `=== USER INSTRUCTIONS (follow these exactly — they override defaults) ===
-${instructions.trim()}
-=== END USER INSTRUCTIONS ===`
+    ? `=== USER INSTRUCTIONS — follow these, they override the example format below ===\n${instructions.trim()}\n`
     : "";
 
-  // Determine what kind of project this looks like
-  const isWebApp = context.sourceFiles?.includes("next") || context.configFiles?.includes("next") || context.fileTree?.includes("page.js") || context.fileTree?.includes("app/");
-  const hasApiRoutes = context.fileTree?.includes("/api/");
-  const isLibraryOrCLI = !isWebApp && (context.configFiles?.includes("bin") || context.fileTree?.includes("cli") || context.fileTree?.includes("index.js"));
-
-  const audienceNote = isWebApp
-    ? "This is a web application. Write the README for someone who wants to USE the app or self-host it — NOT for someone integrating an API. Do not document internal API routes as if they are a public API."
-    : isLibraryOrCLI
-    ? "This appears to be a library or CLI tool. Write for someone who wants to install and use it."
-    : "Write for someone who wants to use or contribute to the project.";
-
-  const prompt = `You are a developer writing a README for your own project. You are explaining it to another developer who wants to use it, build on it, or understand how it works. You are not a technical writer. You are not an AI assistant. You built this thing and you know it well.
-
-${audienceNote}
+  const prompt = `You are writing a README for a GitHub repository. Below is the actual content of the files in the repo — use it to write something specific and accurate.
 
 ${scopeNote}
 Repo: ${subdir ? `${repo}/${subdir}` : repo}
@@ -79,20 +57,58 @@ ${context.fileTree}
 
 ${contextBlock}
 
-RULES — follow all of these:
-1. If the user gave instructions above, follow them exactly. They override everything else.
-2. Default tone: a developer explaining their own project to another developer. First person, direct, no fluff. Like a README you'd actually stop scrolling to read.
-3. Do NOT open with "I built X to do Y." Open with a single punchy line about what it is or why it exists — something that would make a developer think "oh that's useful."
-4. Do NOT use filler phrases like "beautiful READMEs", "high-quality output", "easy to read and understand", "seamless experience". Be concrete instead.
-5. Do NOT narrate internal code ("I use getRepoContext to retrieve..."). Explain what it does from the user's perspective.
-6. Do NOT end with "for more information see X" or "feel free to reach out" or any soft AI landing. Just stop when you're done.
-7. Every technical claim must come from the actual file contents above — no invented features.
-8. If notebooks are present, use exact numbers from outputs — not approximations.
-9. Be specific. Bad: "supports multiple file types." Good: "reads .py, .js, .ts, .ipynb, .r, .sql — for notebooks it pulls markdown cells, code cells, and their printed outputs so it sees actual results not just the code."
-10. Setup section must include exact env vars needed based on what you see in the source (e.g. GITHUB_ID, GITHUB_SECRET, GROQ_API_KEY, NEXTAUTH_SECRET).
-11. If this is a web app, do NOT list internal API routes as "API Endpoints" with GET/POST/params — those are implementation details, not documentation for users. Instead describe what the app lets you DO: "pick a repo, click generate, commit the result."
-12. Do not repeat the same information twice under different headings.
-11. Output only raw markdown. No preamble, no explanation, no "Here is your README:".`;
+---
+
+Here is an example of the style, depth, and structure I want. Study it carefully — your output should feel like this:
+
+---EXAMPLE START---
+# readmeify
+
+I hate writing READMEs. This tool connects to your GitHub, reads your actual repo — file tree, config files, source code, notebook outputs — and generates a README that reflects what the project actually does. Then lets you commit it directly without leaving the page.
+
+**Live:** https://readmeify-five.vercel.app
+
+---
+
+## What it does
+
+When you generate a README, it:
+
+1. Fetches your full file tree (scoped to a subdirectory if you want)
+2. Reads config files — \`package.json\`, \`requirements.txt\`, \`Cargo.toml\`, \`go.mod\`, etc.
+3. Opens any \`.ipynb\` notebooks and extracts markdown cells, code cells, and their outputs — so it sees actual accuracy scores and printed results, not just the code that produced them
+4. Feeds all of that as structured context to Groq (LLaMA 3.3 70B)
+5. Streams the output back in real time
+6. Lets you commit the result directly to your repo via the GitHub API
+
+---
+
+## Self-hosting
+
+\`\`\`bash
+git clone https://github.com/Chenry513/readmeify
+cd readmeify
+npm install
+cp .env.local.example .env.local
+\`\`\`
+
+You need four things in \`.env.local\`:
+- \`NEXTAUTH_SECRET\` — any random string
+- \`GITHUB_ID\` + \`GITHUB_SECRET\` — from a GitHub OAuth App
+- \`GROQ_API_KEY\` — free at console.groq.com
+
+\`\`\`bash
+npm run dev
+\`\`\`
+
+---
+
+## Stack
+
+Next.js · NextAuth · GitHub API · Groq (LLaMA 3.3 70B) · Vercel
+---EXAMPLE END---
+
+Now write the README for the repo above. Use the same voice, depth, and structure as the example — but base every detail on the actual file contents provided. Do not copy the example text. Output only raw markdown.`;
 
   console.log("[generate] prompt length:", prompt.length);
 
