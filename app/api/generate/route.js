@@ -53,7 +53,20 @@ ${instructions.trim()}
 === END USER INSTRUCTIONS ===`
     : "";
 
+  // Determine what kind of project this looks like
+  const isWebApp = context.sourceFiles?.includes("next") || context.configFiles?.includes("next") || context.fileTree?.includes("page.js") || context.fileTree?.includes("app/");
+  const hasApiRoutes = context.fileTree?.includes("/api/");
+  const isLibraryOrCLI = !isWebApp && (context.configFiles?.includes("bin") || context.fileTree?.includes("cli") || context.fileTree?.includes("index.js"));
+
+  const audienceNote = isWebApp
+    ? "This is a web application. Write the README for someone who wants to USE the app or self-host it — NOT for someone integrating an API. Do not document internal API routes as if they are a public API."
+    : isLibraryOrCLI
+    ? "This appears to be a library or CLI tool. Write for someone who wants to install and use it."
+    : "Write for someone who wants to use or contribute to the project.";
+
   const prompt = `You are a developer writing a README for your own project. You are explaining it to another developer who wants to use it, build on it, or understand how it works. You are not a technical writer. You are not an AI assistant. You built this thing and you know it well.
+
+${audienceNote}
 
 ${scopeNote}
 Repo: ${subdir ? `${repo}/${subdir}` : repo}
@@ -77,6 +90,8 @@ RULES — follow all of these:
 8. If notebooks are present, use exact numbers from outputs — not approximations.
 9. Be specific. Bad: "supports multiple file types." Good: "reads .py, .js, .ts, .ipynb, .r, .sql — for notebooks it pulls markdown cells, code cells, and their printed outputs so it sees actual results not just the code."
 10. Setup section must include exact env vars needed based on what you see in the source (e.g. GITHUB_ID, GITHUB_SECRET, GROQ_API_KEY, NEXTAUTH_SECRET).
+11. If this is a web app, do NOT list internal API routes as "API Endpoints" with GET/POST/params — those are implementation details, not documentation for users. Instead describe what the app lets you DO: "pick a repo, click generate, commit the result."
+12. Do not repeat the same information twice under different headings.
 11. Output only raw markdown. No preamble, no explanation, no "Here is your README:".`;
 
   console.log("[generate] prompt length:", prompt.length);
