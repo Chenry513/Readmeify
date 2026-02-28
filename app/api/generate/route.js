@@ -47,7 +47,7 @@ export async function POST(req) {
   const prompt = `You are writing a README for a GitHub repository. Below is the actual content of the files in the repo — use it to write something specific and accurate.
 
 ${scopeNote}
-Repo: ${subdir ? `${repo}/${subdir}` : repo}
+Repo: ${subdir ? repo+"/"+subdir : repo}
 Language: ${context.language}
 
 ${instructionsBlock}
@@ -65,7 +65,7 @@ Notice: the example never mentions internal function names, file paths, or API r
 ---EXAMPLE START---
 # readmeify
 
-Connects to your GitHub, reads your actual repo, generates a README that reflects what's in it. Then lets you commit it without leaving the page. This tool connects to your GitHub, reads your actual repo — file tree, config files, source code, notebook outputs — and generates a README that reflects what the project actually does. Then lets you commit it directly without leaving the page.
+I hate writing READMEs. This connects to GitHub, reads your actual repo — file tree, config files, source code, notebook outputs — and generates a README that reflects what the project actually does. Then lets you commit it without leaving the page.
 
 **Live:** https://readmeify-five.vercel.app
 
@@ -73,14 +73,18 @@ Connects to your GitHub, reads your actual repo, generates a README that reflect
 
 ## What it does
 
+Most README generators just use the repo name and spit out a template. This one actually reads your code.
+
 When you generate a README, it:
 
 1. Fetches your full file tree (scoped to a subdirectory if you want)
 2. Reads config files — \`package.json\`, \`requirements.txt\`, \`Cargo.toml\`, \`go.mod\`, etc.
-3. Opens any \`.ipynb\` notebooks and extracts markdown cells, code cells, and their outputs — so it sees actual accuracy scores and printed results, not just the code that produced them
-4. Feeds all of that as structured context to Groq (LLaMA 3.3 70B)
-5. Streams the output back in real time
+3. Opens \`.ipynb\` notebooks and extracts markdown cells, code cells, and their printed outputs — so it sees actual accuracy scores and results, not just the code that produced them
+4. Reads source files — \`.py\`, \`.js\`, \`.ts\`, \`.r\`, \`.sql\` and more — up to 8 files at 1000 chars each
+5. Feeds all of that as structured context to Groq (LLaMA 3.3 70B) and streams the output back
 6. Lets you commit the result directly to your repo via the GitHub API
+
+You can also scope generation to a subdirectory (useful for monorepos or course project folders), and add notes in the instructions box for context the files don't make obvious.
 
 ---
 
@@ -94,8 +98,9 @@ cp .env.local.example .env.local
 \`\`\`
 
 You need four things in \`.env.local\`:
+
 - \`NEXTAUTH_SECRET\` — any random string
-- \`GITHUB_ID\` + \`GITHUB_SECRET\` — from a GitHub OAuth App
+- \`GITHUB_ID\` + \`GITHUB_SECRET\` — from a GitHub OAuth App (callback: \`http://localhost:3000/api/auth/callback/github\`)
 - \`GROQ_API_KEY\` — free at console.groq.com
 
 \`\`\`bash
