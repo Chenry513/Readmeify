@@ -59,12 +59,13 @@ ${contextBlock}
 
 ---
 
-Here is an example of the style, depth, and structure I want. Study it carefully — your output should feel like this:
+Here is an example of the style, depth, and structure I want. Study it carefully — your output should feel like this.
+Notice: the example never mentions internal function names, file paths, or API routes. It describes what the tool DOES for the user, not how it's implemented.
 
 ---EXAMPLE START---
 # readmeify
 
-I hate writing READMEs. This tool connects to your GitHub, reads your actual repo — file tree, config files, source code, notebook outputs — and generates a README that reflects what the project actually does. Then lets you commit it directly without leaving the page.
+Connects to your GitHub, reads your actual repo, generates a README that reflects what's in it. Then lets you commit it without leaving the page. This tool connects to your GitHub, reads your actual repo — file tree, config files, source code, notebook outputs — and generates a README that reflects what the project actually does. Then lets you commit it directly without leaving the page.
 
 **Live:** https://readmeify-five.vercel.app
 

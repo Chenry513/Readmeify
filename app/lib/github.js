@@ -28,6 +28,9 @@ const SKIP_PATTERNS = [
   /\.pyc$/, /\.min\.js$/, /package-lock\.json$/, /yarn\.lock$/,
   /\.png$/, /\.jpg$/, /\.jpeg$/, /\.gif$/, /\.svg$/, /\.ico$/,
   /\.pdf$/, /\.zip$/, /\.tar$/, /\.gz$/,
+  // Skip Next.js API route files and boilerplate — they describe the app's own plumbing
+  // not useful as context for what the project *does*
+  /app\/api\//, /app\/components\//, /app\/layout\./, /Providers\./,
 ];
 
 function shouldSkip(path) {
