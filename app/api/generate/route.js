@@ -68,18 +68,20 @@ Write the README with these qualities:
 
   console.log("[generate] prompt length:", prompt.length);
 
+  const stream = await anthropic.messages.stream({
+    model: "claude-haiku-4-5",
+    max_tokens: 2500,
+    messages: [{ role: "user", content: prompt }],
+  });
+
   const encoder = new TextEncoder();
   const readable = new ReadableStream({
     async start(controller) {
-      const stream = anthropic.messages.stream({
-        model: "claude-haiku-4-5",
-        max_tokens: 1500,
-        messages: [{ role: "user", content: prompt }],
-      });
-      stream.on("text", (text) => {
-        controller.enqueue(encoder.encode(text));
-      });
-      await stream.finalMessage();
+      for await (const chunk of stream) {
+        if (chunk.type === "content_block_delta" && chunk.delta.type === "text_delta") {
+          controller.enqueue(encoder.encode(chunk.delta.text));
+        }
+      }
       controller.close();
     },
   });
