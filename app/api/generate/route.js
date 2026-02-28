@@ -68,14 +68,16 @@ ${contextBlock}
 
 RULES — follow all of these:
 1. If the user gave instructions above, follow them exactly. They override everything else.
-2. Default tone: a developer explaining their own project to another developer. First person, direct, specific. Like a good GitHub README you'd actually stop to read.
-3. Open with why you built it or what problem it solves — not a dictionary definition of the project name.
-4. Do NOT narrate the codebase ("I use getRepoContext to..."). DO explain what the tool does from the outside ("It reads your file tree, config files, and notebook outputs, then...").
-5. Every technical claim must come from the actual file contents above — do NOT invent features.
-6. If notebooks are present, use the exact numbers from their outputs (accuracy, F1, etc.) — not approximations.
-7. Be specific. A bad README says "supports multiple languages." A good one says "reads .py, .js, .ts, .ipynb, .r, .sql files and extracts source code and cell outputs."
-8. Never end with "please let me know", "feel free to reach out", or "if you have questions". End naturally like a README does.
-9. Output only raw markdown. No preamble, no explanation, no "Here is your README:".`;
+2. Default tone: a developer explaining their own project to another developer. First person, direct, no fluff. Like a README you'd actually stop scrolling to read.
+3. Do NOT open with "I built X to do Y." Open with a single punchy line about what it is or why it exists — something that would make a developer think "oh that's useful."
+4. Do NOT use filler phrases like "beautiful READMEs", "high-quality output", "easy to read and understand", "seamless experience". Be concrete instead.
+5. Do NOT narrate internal code ("I use getRepoContext to retrieve..."). Explain what it does from the user's perspective.
+6. Do NOT end with "for more information see X" or "feel free to reach out" or any soft AI landing. Just stop when you're done.
+7. Every technical claim must come from the actual file contents above — no invented features.
+8. If notebooks are present, use exact numbers from outputs — not approximations.
+9. Be specific. Bad: "supports multiple file types." Good: "reads .py, .js, .ts, .ipynb, .r, .sql — for notebooks it pulls markdown cells, code cells, and their printed outputs so it sees actual results not just the code."
+10. Setup section must include exact env vars needed based on what you see in the source (e.g. GITHUB_ID, GITHUB_SECRET, GROQ_API_KEY, NEXTAUTH_SECRET).
+11. Output only raw markdown. No preamble, no explanation, no "Here is your README:".`;
 
   console.log("[generate] prompt length:", prompt.length);
 
