@@ -141,6 +141,7 @@ export default function Home() {
   const [view, setView] = useState("preview");
   const [commitState, setCommitState] = useState("idle");
   const [copied, setCopied] = useState(false);
+  const [error, setError] = useState("");
 
   useEffect(() => {
     if (!session) return;
@@ -163,7 +164,7 @@ export default function Home() {
 
   async function handleGenerate() {
     if (!selectedRepo || generating) return;
-    setReadme(""); setGenerating(true); setCommitState("idle");
+    setReadme(""); setGenerating(true); setCommitState("idle"); setError("");
     const [owner] = selectedRepo.fullName.split("/");
     abortRef.current = new AbortController();
     try {
@@ -183,7 +184,7 @@ export default function Home() {
         setReadme(acc);
       }
     } catch (e) {
-      if (e.name !== "AbortError") console.error(e);
+      if (e.name !== "AbortError") { console.error(e); setError(e.message); }
     }
     setGenerating(false);
   }
@@ -343,15 +344,15 @@ export default function Home() {
               })}
             </div>
 
-            <div style={{borderTop:"1px solid var(--border)",padding:"12px"}}>
-              <div style={{fontSize:".75rem",fontWeight:500,color:"var(--muted)",marginBottom:6}}>
+            <div style={{borderTop:"1px solid var(--border)",padding:"14px 12px 16px",flexShrink:0}}>
+              <div style={{fontSize:".75rem",fontWeight:500,color:"var(--muted)",marginBottom:8}}>
                 instructions <span style={{fontWeight:400,color:"var(--subtle)",fontSize:".72rem"}}>(optional)</span>
               </div>
               <textarea value={instructions} onChange={e=>setInstructions(e.target.value)}
                 placeholder="e.g. focus on the API, mention Docker, ignore the /legacy folder..."
-                style={{width:"100%",background:"var(--surface2)",border:"1px solid var(--border)",borderRadius:7,padding:"8px 10px",color:"var(--text)",fontSize:".75rem",resize:"none",outline:"none",lineHeight:1.5,height:90,boxSizing:"border-box"}}/>
+                style={{width:"100%",background:"var(--surface2)",border:"1px solid var(--border)",borderRadius:7,padding:"8px 10px",color:"var(--text)",fontSize:".75rem",resize:"none",outline:"none",lineHeight:1.5,height:80,boxSizing:"border-box",display:"block"}}/>
               {selectedDir && (
-                <div style={{marginTop:6,fontSize:".7rem",color:"var(--accent2)",display:"flex",alignItems:"center",gap:4}}>
+                <div style={{marginTop:8,fontSize:".7rem",color:"var(--accent2)",display:"flex",alignItems:"center",gap:4}}>
                   <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="20 6 9 17 4 12"/></svg>
                   Scoped to <code style={{background:"rgba(35,134,54,.1)",padding:"1px 5px",borderRadius:3}}>{selectedDir}/</code>
                 </div>
@@ -401,6 +402,7 @@ export default function Home() {
               </div>
 
               <div style={{flex:1,overflow:"auto",padding:"24px 28px"}}>
+                {error && <div style={{color:"#f85149",fontSize:".8rem",padding:"12px",background:"rgba(248,81,73,.1)",borderRadius:8,marginBottom:12,border:"1px solid rgba(248,81,73,.3)"}}>Error: {error}</div>}
                 {!readme && !generating && (
                   <div style={{display:"flex",alignItems:"center",justifyContent:"center",height:"100%",flexDirection:"column",gap:10,color:"var(--muted)"}}>
                     <p style={{fontSize:".88rem"}}>Click <strong style={{color:"var(--text)"}}>Generate README</strong> to create your README</p>
