@@ -21,7 +21,7 @@ function renderMd(md) {
     const l = lines[i];
     if (l.startsWith("```")) {
       if (!inCode) { inCode = true; codeBuf = []; }
-      else { inCode = false; out.push(`<pre style='background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:14px;overflow:auto;margin:10px 0'><code style='font-family:JetBrains Mono,monospace;font-size:.76em;color:#8888aa;line-height:1.8'>${codeBuf.map(x=>x.replace(/</g,"&lt;")).join("\n")}</code></pre>`); }
+      else { inCode = false; out.push(`<pre style='background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:14px;overflow:auto;margin:10px 0'><code style='font-family:JetBrains Mono,monospace;font-size:.76em;color:var(--muted);line-height:1.8'>${codeBuf.map(x=>x.replace(/</g,"&lt;")).join("\n")}</code></pre>`); }
       continue;
     }
     if (inCode) { codeBuf.push(l); continue; }
@@ -32,20 +32,20 @@ function renderMd(md) {
       if (next.startsWith("|--") || next.startsWith("| --")) {
         tableRows.push(`<tr>${cells.map(c=>`<th style='background:var(--surface2);padding:8px 12px;border:1px solid var(--border);text-align:left;font-size:.78em;color:var(--muted)'>${inline(c)}</th>`).join("")}</tr>`);
       } else if (!l.match(/^[\s|:-]+$/)) {
-        tableRows.push(`<tr>${cells.map(c=>`<td style='padding:7px 12px;border:1px solid var(--border);font-size:.8em;color:#8888aa'>${inline(c)}</td>`).join("")}</tr>`);
+        tableRows.push(`<tr>${cells.map(c=>`<td style='padding:7px 12px;border:1px solid var(--border);font-size:.8em;color:var(--muted)'>${inline(c)}</td>`).join("")}</tr>`);
       }
       continue;
     }
     flush();
     if (!l.trim()) { out.push("<br/>"); continue; }
-    if (/^# /.test(l)) out.push(`<h1 style='font-family:Lora,serif;font-size:1.8em;margin:0 0 .4em;color:var(--text);font-weight:600'>${inline(l.slice(2))}</h1>`);
+    if (/^# /.test(l)) out.push(`<h1 style='font-size:1.5em;margin:0 0 .6em;color:var(--text);font-weight:600;border-bottom:1px solid var(--border);padding-bottom:.3em'>${inline(l.slice(2))}</h1>`);
     else if (/^## /.test(l)) out.push(`<h2 style='font-size:1.05em;font-weight:600;margin:1.6em 0 .5em;color:var(--text);border-bottom:1px solid var(--border);padding-bottom:5px'>${inline(l.slice(3))}</h2>`);
-    else if (/^### /.test(l)) out.push(`<h3 style='font-size:.92em;font-weight:600;margin:1.2em 0 .3em;color:var(--accent2)'>${inline(l.slice(4))}</h3>`);
+    else if (/^### /.test(l)) out.push(`<h3 style='font-size:.92em;font-weight:600;margin:1.2em 0 .3em;color:var(--text)'>${inline(l.slice(4))}</h3>`);
     else if (/^> /.test(l)) out.push(`<blockquote style='border-left:3px solid var(--accent);padding:4px 0 4px 14px;color:var(--muted);font-style:italic;font-size:.85em;margin:10px 0'>${inline(l.slice(2))}</blockquote>`);
-    else if (/^[-*] /.test(l)) out.push(`<div style='display:flex;gap:8px;align-items:flex-start;margin:3px 0;font-size:.85em;color:#9090b0'><span style='color:var(--border2);margin-top:2px'>–</span><span>${inline(l.slice(2))}</span></div>`);
-    else if (/^\d+\. /.test(l)) out.push(`<div style='font-size:.85em;color:#9090b0;margin:3px 0;padding-left:1rem'>${inline(l.replace(/^\d+\. /,""))}</div>`);
+    else if (/^[-*] /.test(l)) out.push(`<div style='display:flex;gap:8px;align-items:flex-start;margin:3px 0;font-size:.85em;color:var(--muted)'><span style='color:var(--border2);margin-top:2px'>•</span><span>${inline(l.slice(2))}</span></div>`);
+    else if (/^\d+\. /.test(l)) out.push(`<div style='font-size:.85em;color:var(--muted);margin:3px 0;padding-left:1rem'>${inline(l.replace(/^\d+\. /,""))}</div>`);
     else if (l.startsWith("![")) { /* skip badges */ }
-    else out.push(`<p style='font-size:.85em;color:#9090b0;margin:.4em 0;line-height:1.7'>${inline(l)}</p>`);
+    else out.push(`<p style='font-size:.875em;color:var(--muted);margin:.5em 0;line-height:1.65'>${inline(l)}</p>`);
   }
   flush();
   return out.join("");
@@ -118,25 +118,8 @@ export default function Home() {
 
   // instructions
   const [instructions, setInstructions] = useState("");
-  const [instHeight, setInstHeight] = useState(120);
   const [sidebarWidth, setSidebarWidth] = useState(260);
   const dragRef = useRef(null);
-
-  const startDrag = (e) => {
-    e.preventDefault();
-    const startY = e.clientY;
-    const startH = instHeight;
-    const onMove = (ev) => {
-      const delta = startY - ev.clientY;
-      setInstHeight(Math.min(400, Math.max(60, startH + delta)));
-    };
-    const onUp = () => {
-      window.removeEventListener("mousemove", onMove);
-      window.removeEventListener("mouseup", onUp);
-    };
-    window.addEventListener("mousemove", onMove);
-    window.addEventListener("mouseup", onUp);
-  };
 
   const startSidebarDrag = (e) => {
     e.preventDefault();
@@ -405,7 +388,7 @@ export default function Home() {
               </div>
               <textarea value={instructions} onChange={e=>setInstructions(e.target.value)}
                 placeholder="e.g. focus on the API, mention Docker, ignore the /legacy folder..."
-                style={{width:"100%",background:"var(--surface2)",border:"1px solid var(--border)",borderRadius:7,padding:"8px 10px",color:"var(--text)",fontSize:".75rem",fontFamily:"inherit",resize:"none",outline:"none",lineHeight:1.5}} rows={4}/>
+                style={{width:"100%",background:"var(--surface2)",border:"1px solid var(--border)",borderRadius:7,padding:"8px 10px",color:"var(--text)",fontSize:".75rem",fontFamily:"inherit",resize:"none",outline:"none",lineHeight:1.5,height:100}} />
               {selectedDir && (
                 <div style={{marginTop:6,fontSize:".7rem",color:"var(--accent2)",display:"flex",alignItems:"center",gap:4}}>
                   <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="20 6 9 17 4 12"/></svg>
